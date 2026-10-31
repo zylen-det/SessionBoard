@@ -1,0 +1,532 @@
+{
+  "LiveSession": {
+    "id": "",
+    "status": "spawning",
+    "startedAt": null,
+    "closedAt": null,
+    "control": null,
+    "model": null,
+    "contextWindowTokens": 0,
+    "agentState": {
+      "group": "needs_you",
+      "state": "",
+      "label": "",
+      "context": null
+    },
+    "pid": null,
+    "title": "",
+    "lastUserMessage": "",
+    "currentActivity": "",
+    "turnCount": 0,
+    "lastActivityAt": 0,
+    "currentTurnStartedAt": null,
+    "subAgents": [],
+    "progressItems": [],
+    "compactCount": 0,
+    "hookEvents": [],
+    "project": "",
+    "projectDisplayName": "",
+    "projectPath": "",
+    "filePath": "",
+    "gitBranch": null,
+    "worktreeBranch": null,
+    "isWorktree": false,
+    "effectiveBranch": null,
+    "tokens": {
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheCreationTokens": 0,
+      "cacheCreation5mTokens": 0,
+      "cacheCreation1hrTokens": 0,
+      "totalTokens": 0
+    },
+    "cost": {
+      "totalUsd": 0,
+      "inputCostUsd": 0,
+      "outputCostUsd": 0,
+      "cacheReadCostUsd": 0,
+      "cacheCreationCostUsd": 0,
+      "cacheSavingsUsd": 0,
+      "hasUnpricedUsage": false,
+      "unpricedInputTokens": 0,
+      "unpricedOutputTokens": 0,
+      "unpricedCacheReadTokens": 0,
+      "unpricedCacheCreationTokens": 0,
+      "pricedTokenCoverage": 0,
+      "totalCostSource": ""
+    },
+    "cacheStatus": "warm",
+    "lastTurnTaskSeconds": null,
+    "lastCacheHitAt": null,
+    "teamName": null,
+    "editCount": 0,
+    "toolsUsed": [],
+    "slug": null,
+    "phase": {
+      "current": null,
+      "labels": [],
+      "dominant": null,
+      "freshness": "fresh"
+    }
+  },
+  "SessionInfo": {
+    "id": "",
+    "project": "",
+    "projectPath": "",
+    "displayName": "",
+    "filePath": "",
+    "modifiedAt": 0,
+    "sizeBytes": 0,
+    "preview": "",
+    "lastMessage": "",
+    "filesTouched": [],
+    "skillsUsed": [],
+    "toolCounts": {
+      "edit": 0,
+      "read": 0,
+      "bash": 0,
+      "write": 0
+    },
+    "messageCount": 0,
+    "turnCount": 0,
+    "isSidechain": false,
+    "deepIndexed": false,
+    "userPromptCount": 0,
+    "apiCallCount": 0,
+    "toolCallCount": 0,
+    "filesRead": [],
+    "filesEdited": [],
+    "filesReadCount": 0,
+    "filesEditedCount": 0,
+    "reeditedFilesCount": 0,
+    "durationSeconds": 0,
+    "commitCount": 0,
+    "thinkingBlockCount": 0,
+    "apiErrorCount": 0,
+    "compactionCount": 0,
+    "agentSpawnCount": 0,
+    "bashProgressCount": 0,
+    "hookProgressCount": 0,
+    "mcpProgressCount": 0,
+    "linesAdded": 0,
+    "linesRemoved": 0,
+    "locSource": 0,
+    "parseVersion": 0
+  },
+  "SessionDetail": {
+    "commits": [],
+    "derivedMetrics": {},
+    "hasPlans": false,
+    "id": "",
+    "project": "",
+    "projectPath": "",
+    "displayName": "",
+    "filePath": "",
+    "modifiedAt": 0,
+    "sizeBytes": 0,
+    "preview": "",
+    "lastMessage": "",
+    "filesTouched": [],
+    "skillsUsed": [],
+    "toolCounts": {
+      "edit": 0,
+      "read": 0,
+      "bash": 0,
+      "write": 0
+    },
+    "messageCount": 0,
+    "turnCount": 0,
+    "isSidechain": false,
+    "deepIndexed": false,
+    "userPromptCount": 0,
+    "apiCallCount": 0,
+    "toolCallCount": 0,
+    "filesRead": [],
+    "filesEdited": [],
+    "filesReadCount": 0,
+    "filesEditedCount": 0,
+    "reeditedFilesCount": 0,
+    "durationSeconds": 0,
+    "commitCount": 0,
+    "thinkingBlockCount": 0,
+    "apiErrorCount": 0,
+    "compactionCount": 0,
+    "agentSpawnCount": 0,
+    "bashProgressCount": 0,
+    "hookProgressCount": 0,
+    "mcpProgressCount": 0,
+    "linesAdded": 0,
+    "linesRemoved": 0,
+    "locSource": 0,
+    "parseVersion": 0
+  },
+  "ExtendedDashboardStats": {
+    "currentWeek": {
+      "sessionCount": 0,
+      "totalTokens": 0,
+      "totalFilesEdited": 0,
+      "commitCount": 0
+    },
+    "trends": null,
+    "periodStart": null,
+    "periodEnd": null,
+    "comparisonPeriodStart": null,
+    "comparisonPeriodEnd": null,
+    "dataStartDate": null,
+    "meta": {
+      "ranges": {
+        "currentPeriod": {
+          "from": 0,
+          "to": 0,
+          "source": "explicit_from_to"
+        },
+        "heatmap": {
+          "from": 0,
+          "to": 0,
+          "source": "explicit_from_to"
+        }
+      },
+      "dataScope": {
+        "sessions": "primary_sessions_only",
+        "workload": "primary_sessions_only"
+      },
+      "sessionBreakdown": {
+        "primarySessions": 0,
+        "sidechainSessions": 0,
+        "otherSessions": 0,
+        "totalObservedSessions": 0
+      }
+    },
+    "totalSessions": 0,
+    "totalProjects": 0,
+    "heatmap": [],
+    "topSkills": [],
+    "topCommands": [],
+    "topMcpTools": [],
+    "topAgents": [],
+    "topProjects": [],
+    "toolTotals": {
+      "edit": 0,
+      "read": 0,
+      "bash": 0,
+      "write": 0
+    },
+    "longestSessions": []
+  },
+  "AIGenerationStatsResponse": {
+    "meta": {
+      "dataScope": {
+        "sessions": "primary_sessions_only",
+        "workload": "primary_sessions_only"
+      },
+      "sessionBreakdown": {
+        "primarySessions": 0,
+        "sidechainSessions": 0,
+        "otherSessions": 0,
+        "totalObservedSessions": 0
+      }
+    },
+    "linesAdded": 0,
+    "linesRemoved": 0,
+    "filesCreated": 0,
+    "totalInputTokens": 0,
+    "totalOutputTokens": 0,
+    "cacheReadTokens": 0,
+    "cacheCreationTokens": 0,
+    "tokensByModel": [],
+    "tokensByProject": [],
+    "cost": {
+      "totalCostUsd": 0,
+      "inputCostUsd": 0,
+      "outputCostUsd": 0,
+      "cacheReadCostUsd": 0,
+      "cacheCreationCostUsd": 0,
+      "cacheSavingsUsd": 0,
+      "computedPricedTotalCostUsd": 0,
+      "pricedModelCount": 0,
+      "unpricedModelCount": 0,
+      "unpricedInputTokens": 0,
+      "unpricedOutputTokens": 0,
+      "unpricedCacheReadTokens": 0,
+      "unpricedCacheCreationTokens": 0,
+      "pricedTokenCoverage": 0,
+      "hasUnpricedUsage": false,
+      "totalCostSource": ""
+    }
+  },
+  "SystemResponse": {
+    "storage": {
+      "jsonlBytes": 0,
+      "indexBytes": 0,
+      "dbBytes": 0,
+      "cacheBytes": 0,
+      "totalBytes": 0
+    },
+    "performance": {
+      "lastIndexDurationMs": null,
+      "throughputBytesPerSec": null,
+      "sessionsPerSec": null
+    },
+    "health": {
+      "sessionsCount": 0,
+      "commitsCount": 0,
+      "projectsCount": 0,
+      "errorsCount": 0,
+      "lastSyncAt": null,
+      "status": "healthy"
+    },
+    "integrity": {
+      "counters": {
+        "unknownTopLevelTypeCount": 0,
+        "unknownRequiredPathCount": 0,
+        "imaginaryPathAccessCount": 0,
+        "legacyFallbackPathCount": 0,
+        "droppedLineInvalidJsonCount": 0,
+        "schemaMismatchCount": 0,
+        "unknownSourceRoleCount": 0,
+        "derivedSourceMessageDocCount": 0,
+        "sourceMessageNonSourceProvenanceCount": 0
+      }
+    },
+    "indexHistory": [],
+    "classification": {
+      "classifiedCount": 0,
+      "unclassifiedCount": 0,
+      "lastRunAt": null,
+      "lastRunDurationMs": null,
+      "lastRunCostCents": null,
+      "provider": "",
+      "model": "",
+      "isRunning": false,
+      "progress": null
+    },
+    "claudeCli": {
+      "path": null,
+      "version": null,
+      "authenticated": false,
+      "subscriptionType": null
+    }
+  },
+  "StorageStats": {
+    "jsonlBytes": 0,
+    "sqliteBytes": 0,
+    "indexBytes": 0,
+    "sessionCount": 0,
+    "projectCount": 0,
+    "commitCount": 0,
+    "oldestSessionDate": null,
+    "lastIndexAt": null,
+    "lastIndexDurationMs": null,
+    "lastIndexSessionCount": 0,
+    "lastGitSyncAt": null,
+    "lastGitSyncDurationMs": null,
+    "lastGitSyncRepoCount": 0,
+    "jsonlPath": null,
+    "sqlitePath": null,
+    "indexPath": null,
+    "appDataPath": null
+  },
+  "RichSessionData": {
+    "tokens": {
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheCreationTokens": 0,
+      "cacheCreation5mTokens": 0,
+      "cacheCreation1hrTokens": 0,
+      "totalTokens": 0
+    },
+    "cost": {
+      "totalUsd": 0,
+      "inputCostUsd": 0,
+      "outputCostUsd": 0,
+      "cacheReadCostUsd": 0,
+      "cacheCreationCostUsd": 0,
+      "cacheSavingsUsd": 0,
+      "hasUnpricedUsage": false,
+      "unpricedInputTokens": 0,
+      "unpricedOutputTokens": 0,
+      "unpricedCacheReadTokens": 0,
+      "unpricedCacheCreationTokens": 0,
+      "pricedTokenCoverage": 0,
+      "totalCostSource": ""
+    },
+    "cacheStatus": "warm",
+    "subAgents": [],
+    "teamName": null,
+    "progressItems": [],
+    "contextWindowTokens": 0,
+    "model": null,
+    "gitBranch": null,
+    "turnCount": 0,
+    "firstUserMessage": null,
+    "lastUserMessage": null,
+    "lastCacheHitAt": null,
+    "slug": null,
+    "phase": {
+      "current": null,
+      "labels": [],
+      "dominant": null,
+      "freshness": "fresh"
+    }
+  },
+  "ContributionsResponse": {
+    "overview": {
+      "fluency": {
+        "sessions": 0,
+        "promptsPerSession": 0,
+        "trend": null,
+        "insight": {
+          "text": "",
+          "kind": "info"
+        }
+      },
+      "output": {
+        "linesAdded": 0,
+        "linesRemoved": 0,
+        "filesCount": 0,
+        "commitsCount": 0,
+        "insight": {
+          "text": "",
+          "kind": "info"
+        }
+      },
+      "effectiveness": {
+        "commitRate": null,
+        "reeditRate": null,
+        "insight": {
+          "text": "",
+          "kind": "info"
+        }
+      }
+    },
+    "trend": [],
+    "efficiency": {
+      "totalCost": 0,
+      "totalLines": 0,
+      "pricedLines": 0,
+      "costPerLine": null,
+      "costPerCommit": null,
+      "costTrend": [],
+      "hasUnpricedUsage": false,
+      "pricedModelCount": 0,
+      "unpricedModelCount": 0,
+      "unpricedInputTokens": 0,
+      "unpricedOutputTokens": 0,
+      "unpricedCacheReadTokens": 0,
+      "unpricedCacheCreationTokens": 0,
+      "pricedTokenCoverage": 0,
+      "costScope": "",
+      "insight": {
+        "text": "",
+        "kind": "info"
+      }
+    },
+    "byModel": [],
+    "learningCurve": {
+      "periods": [],
+      "currentAvg": 0,
+      "improvement": 0,
+      "insight": ""
+    },
+    "byBranch": [],
+    "bySkill": [],
+    "skillInsight": "",
+    "uncommitted": [],
+    "uncommittedInsight": "",
+    "warnings": [],
+    "meta": {
+      "dataScope": {
+        "sessions": "primary_sessions_only",
+        "workload": "primary_sessions_only"
+      },
+      "sessionBreakdown": {
+        "primarySessions": 0,
+        "sidechainSessions": 0,
+        "otherSessions": 0,
+        "totalObservedSessions": 0
+      }
+    }
+  },
+  "InsightsResponse": {
+    "topInsight": null,
+    "overview": {
+      "workBreakdown": {
+        "totalSessions": 0,
+        "withCommits": 0,
+        "exploration": 0,
+        "avgSessionMinutes": 0
+      },
+      "efficiency": {
+        "avgReeditRate": 0,
+        "avgEditVelocity": 0,
+        "trend": "",
+        "trendPct": 0
+      },
+      "bestTime": {
+        "dayOfWeek": "",
+        "timeSlot": "",
+        "improvementPct": 0
+      }
+    },
+    "patterns": {
+      "high": [],
+      "medium": [],
+      "observations": []
+    },
+    "classificationStatus": {
+      "classified": 0,
+      "total": 0,
+      "pendingClassification": 0,
+      "classificationPct": 0
+    },
+    "meta": {
+      "computedAt": 0,
+      "timeRangeStart": 0,
+      "timeRangeEnd": 0,
+      "effectiveRange": {
+        "from": 0,
+        "to": 0,
+        "source": "explicit_from_to"
+      },
+      "patternsEvaluated": 0,
+      "patternsReturned": 0,
+      "dataScope": {
+        "sessions": "primary_sessions_only",
+        "workload": "primary_sessions_only"
+      },
+      "sessionBreakdown": {
+        "primarySessions": 0,
+        "sidechainSessions": 0,
+        "otherSessions": 0,
+        "totalObservedSessions": 0
+      }
+    }
+  },
+  "SearchResponse": {
+    "query": "",
+    "totalSessions": 0,
+    "totalMatches": 0,
+    "elapsedMs": 0,
+    "sessions": []
+  },
+  "ClaudeCodeSettingsResponse": null,
+  "MemoryResponse": null,
+  "PluginsResponse": {
+    "installed": [],
+    "available": [],
+    "totalInstalled": 0,
+    "totalAvailable": 0,
+    "duplicateCount": 0,
+    "unusedCount": 0,
+    "updatableCount": 0,
+    "marketplaces": [],
+    "cliError": null,
+    "orphanCount": 0,
+    "userSkills": [],
+    "userCommands": [],
+    "userAgents": []
+  },
+  "ScoreResponse": null
+}

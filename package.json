@@ -1,0 +1,24 @@
+{
+  "name": "agenthud",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/web",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --cwd apps/web dev --host 0.0.0.0",
+    "build": "bun run --cwd apps/web build",
+    "preview": "bun run --cwd apps/web preview --host 0.0.0.0",
+    "typecheck": "bun run --cwd apps/web typecheck",
+    "test:demo": "node scripts/verify-demo.mjs",
+    "start:codex": "node server/index.mjs",
+    "test:codex": "node --test server/*.test.mjs",
+    "test:codex:browser": "node scripts/verify-codex.mjs",
+    "start": "node server/index.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.22.0"
+  }
+}

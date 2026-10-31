@@ -1,0 +1,980 @@
+@import "tailwindcss";
+@source "../../../packages/shared/src/**/*.tsx";
+@import '../../../packages/shared/src/styles/conversation-theme.css';
+@plugin "@tailwindcss/typography";
+
+/* Dark mode: class-based (not media query) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* ─── Apple HIG Type Scale ─── */
+  /* Redefine Tailwind's text-* to create clear visual hierarchy */
+  /* Scale: 11 → 13 → 14 → 15 → 17 → 20 → 24 → 32 */
+  --text-xs: 0.8125rem;           /* 13px — caption */
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.875rem;            /* 14px — callout */
+  --text-sm--line-height: 1.45;
+  --text-base: 0.9375rem;         /* 15px — body */
+  --text-base--line-height: 1.5;
+  --text-lg: 1.0625rem;           /* 17px — title-3 */
+  --text-lg--line-height: 1.3;
+  --text-xl: 1.25rem;             /* 20px — title-2 */
+  --text-xl--line-height: 1.25;
+  --text-2xl: 1.5rem;             /* 24px — title-1 */
+  --text-2xl--line-height: 1.2;
+  --text-3xl: 2rem;               /* 32px — display */
+  --text-3xl--line-height: 1.1;
+
+  /* ─── Apple Color System ─── */
+  --color-apple-bg: var(--color-zinc-100);
+  --color-apple-surface: var(--color-zinc-50);
+  --color-apple-text1: var(--color-zinc-900);
+  --color-apple-text2: var(--color-zinc-500);
+  --color-apple-text3: var(--color-zinc-400);
+  --color-apple-sep: var(--color-zinc-300);
+  --color-apple-sep2: var(--color-zinc-200);
+  --color-apple-blue: var(--color-zinc-500);
+  --color-apple-orange: var(--color-zinc-500);
+  --color-apple-red: #FF3B30;
+  --color-apple-indigo: var(--color-zinc-500);
+  --color-apple-green: #34C759;
+}
+
+/* Design System Fonts */
+:root {
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Apple HIG-inspired type scale utilities ─── */
+/* Tighter letter-spacing at large sizes, open at small sizes */
+
+.type-display {
+  font-size: 2rem;      /* 32px */
+  line-height: 1.1;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
+.type-title-1 {
+  font-size: 1.5rem;    /* 24px */
+  line-height: 1.2;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
+.type-title-2 {
+  font-size: 1.25rem;   /* 20px */
+  line-height: 1.25;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
+.type-title-3 {
+  font-size: 1.0625rem; /* 17px */
+  line-height: 1.3;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
+.type-body {
+  font-size: 0.9375rem; /* 15px */
+  line-height: 1.5;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+.type-body-em {
+  font-size: 0.9375rem; /* 15px */
+  line-height: 1.5;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+.type-callout {
+  font-size: 0.875rem;  /* 14px */
+  line-height: 1.45;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+.type-caption-1 {
+  font-size: 0.8125rem; /* 13px */
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  font-weight: 400;
+}
+
+.type-caption-2 {
+  font-size: 0.6875rem; /* 11px */
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  font-weight: 500;
+}
+
+/* ── Custom Scrollbars ── */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-zinc-300) transparent;
+}
+
+:where(.dark, .dark *) * {
+  scrollbar-color: var(--color-zinc-600) transparent;
+}
+
+/* Webkit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-zinc-300);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-zinc-400);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+:where(.dark, .dark *) ::-webkit-scrollbar-thumb {
+  background: var(--color-zinc-600);
+}
+
+:where(.dark, .dark *) ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-zinc-500);
+}
+
+/* ── Prose: code block overrides ── */
+
+/* Light mode: soft gray bg, dark text */
+.prose pre {
+  background: var(--color-zinc-50);
+  color: var(--color-zinc-800);
+  border: 1px solid var(--color-zinc-300);
+}
+
+.prose :not(pre) > code {
+  background: var(--color-zinc-100);
+  color: var(--color-zinc-800);
+  padding: 0.15em 0.35em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  font-weight: 500;
+}
+
+.prose :not(pre) > code::before,
+.prose :not(pre) > code::after {
+  content: none;
+}
+
+/* Dark mode: deep surface bg, light text */
+:where(.dark, .dark *) .prose pre {
+  background: var(--color-zinc-900);
+  color: var(--color-zinc-300);
+  border: 1px solid var(--color-zinc-700);
+}
+
+:where(.dark, .dark *) .prose :not(pre) > code {
+  background: var(--color-zinc-800);
+  color: var(--color-zinc-300);
+}
+
+/* Utility classes for metric typography */
+.font-metric-value {
+  font-family: var(--font-mono);
+}
+
+.font-metric-label {
+  font-family: var(--font-sans);
+}
+
+/* ── ActivityCalendar: react-day-picker heatmap ── */
+
+.activity-calendar .rdp-root {
+  --rdp-accent-color: #059669;
+  --rdp-accent-background-color: transparent;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Month fills container */
+.activity-calendar .rdp-month {
+  width: 100%;
+}
+
+/* Caption row: month name + nav arrows */
+.activity-calendar .rdp-month_caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  padding: 0 0.25rem;
+}
+
+.activity-calendar .rdp-caption_label {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--color-zinc-900);
+  letter-spacing: 0;
+}
+
+:where(.dark, .dark *) .activity-calendar .rdp-caption_label {
+  color: var(--color-zinc-100);
+}
+
+/* Nav buttons */
+.activity-calendar .rdp-nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.activity-calendar .rdp-button_previous,
+.activity-calendar .rdp-button_next {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  color: var(--color-zinc-500);
+  cursor: pointer;
+  transition: all 150ms;
+}
+
+.activity-calendar .rdp-button_previous:hover,
+.activity-calendar .rdp-button_next:hover {
+  background: var(--color-zinc-100);
+  color: var(--color-zinc-900);
+}
+
+:where(.dark, .dark *) .activity-calendar .rdp-button_previous,
+:where(.dark, .dark *) .activity-calendar .rdp-button_next {
+  color: var(--color-zinc-400);
+}
+
+:where(.dark, .dark *) .activity-calendar .rdp-button_previous:hover,
+:where(.dark, .dark *) .activity-calendar .rdp-button_next:hover {
+  background: var(--color-zinc-700);
+  color: var(--color-zinc-100);
+}
+
+/* Day grid: 7 even columns filling width */
+.activity-calendar .rdp-month_grid {
+  width: 100%;
+  border-spacing: 4px;
+  border-collapse: separate;
+}
+
+/* Weekday headers */
+.activity-calendar .rdp-weekday {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-zinc-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-bottom: 0.5rem;
+  text-align: center;
+  width: calc(100% / 7);
+}
+
+:where(.dark, .dark *) .activity-calendar .rdp-weekday {
+  color: var(--color-zinc-500);
+}
+
+/* Day cells: uniform square */
+.activity-calendar .rdp-day {
+  width: calc(100% / 7);
+  padding: 2px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Range selection styling */
+.activity-calendar .rdp-range_start .rdp-day_button,
+.activity-calendar .rdp-range_end .rdp-day_button {
+  box-shadow: 0 0 0 2px #059669;
+}
+
+.activity-calendar .rdp-range_middle .rdp-day_button {
+  opacity: 0.85;
+}
+
+/* Today indicator */
+.activity-calendar .rdp-today {
+  font-weight: 600;
+}
+
+/* Hide default selected styles that clash */
+.activity-calendar .rdp-selected .rdp-day_button {
+  border: none;
+  outline: none;
+}
+
+/* ── DateRangePicker: react-day-picker range mode ── */
+
+.date-range-picker .rdp-root {
+  --rdp-accent-color: var(--color-zinc-500);
+  --rdp-accent-background-color: var(--color-zinc-200);
+  --rdp-range_start-color: var(--color-zinc-50);
+  --rdp-range_start-background: var(--color-zinc-500);
+  --rdp-range_end-color: var(--color-zinc-50);
+  --rdp-range_end-background: var(--color-zinc-500);
+  --rdp-range_middle-color: var(--color-zinc-600);
+  --rdp-range_middle-background: var(--color-zinc-200);
+  font-size: 0.875rem;
+}
+
+:where(.dark, .dark *) .date-range-picker .rdp-root {
+  --rdp-accent-color: var(--color-zinc-400);
+  --rdp-accent-background-color: var(--color-zinc-700);
+  --rdp-range_start-color: var(--color-zinc-50);
+  --rdp-range_start-background: var(--color-zinc-400);
+  --rdp-range_end-color: var(--color-zinc-50);
+  --rdp-range_end-background: var(--color-zinc-400);
+  --rdp-range_middle-color: var(--color-zinc-300);
+  --rdp-range_middle-background: var(--color-zinc-700);
+}
+
+/* Month caption: name + nav arrows */
+.date-range-picker .rdp-month_caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  padding: 0 0.25rem;
+}
+
+.date-range-picker .rdp-caption_label {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-zinc-900);
+  letter-spacing: 0;
+}
+
+:where(.dark, .dark *) .date-range-picker .rdp-caption_label {
+  color: var(--color-zinc-100);
+}
+
+/* Nav buttons */
+.date-range-picker .rdp-nav {
+  display: flex;
+  gap: 0.125rem;
+}
+
+.date-range-picker .rdp-button_previous,
+.date-range-picker .rdp-button_next {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  color: var(--color-zinc-500);
+  cursor: pointer;
+  transition: all 150ms;
+}
+
+.date-range-picker .rdp-button_previous:hover,
+.date-range-picker .rdp-button_next:hover {
+  background: var(--color-zinc-100);
+  color: var(--color-zinc-900);
+}
+
+:where(.dark, .dark *) .date-range-picker .rdp-button_previous,
+:where(.dark, .dark *) .date-range-picker .rdp-button_next {
+  color: var(--color-zinc-400);
+}
+
+:where(.dark, .dark *) .date-range-picker .rdp-button_previous:hover,
+:where(.dark, .dark *) .date-range-picker .rdp-button_next:hover {
+  background: var(--color-zinc-700);
+  color: var(--color-zinc-100);
+}
+
+/* Weekday headers */
+.date-range-picker .rdp-weekday {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-zinc-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-bottom: 0.25rem;
+  text-align: center;
+}
+
+:where(.dark, .dark *) .date-range-picker .rdp-weekday {
+  color: var(--color-zinc-500);
+}
+
+/* Day cells */
+.date-range-picker .rdp-day_button {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--color-zinc-700);
+  cursor: pointer;
+  transition: all 100ms;
+}
+
+.date-range-picker .rdp-day_button:hover {
+  background: var(--color-zinc-100);
+}
+
+:where(.dark, .dark *) .date-range-picker .rdp-day_button {
+  color: var(--color-zinc-300);
+}
+
+:where(.dark, .dark *) .date-range-picker .rdp-day_button:hover {
+  background: var(--color-zinc-700);
+}
+
+/* Today indicator */
+.date-range-picker .rdp-today .rdp-day_button {
+  font-weight: 600;
+  color: var(--color-zinc-500);
+}
+
+:where(.dark, .dark *) .date-range-picker .rdp-today .rdp-day_button {
+  color: var(--color-zinc-400);
+}
+
+/* Outside / disabled days */
+.date-range-picker .rdp-disabled .rdp-day_button {
+  color: var(--color-zinc-300);
+  cursor: not-allowed;
+}
+
+:where(.dark, .dark *) .date-range-picker .rdp-disabled .rdp-day_button {
+  color: var(--color-zinc-600);
+}
+
+/* Range start + end: solid blue pill */
+.date-range-picker .rdp-range_start .rdp-day_button,
+.date-range-picker .rdp-range_end .rdp-day_button {
+  background: var(--color-zinc-500);
+  color: var(--color-zinc-50);
+  font-weight: 600;
+}
+
+:where(.dark, .dark *) .date-range-picker .rdp-range_start .rdp-day_button,
+:where(.dark, .dark *) .date-range-picker .rdp-range_end .rdp-day_button {
+  background: var(--color-zinc-400);
+  color: var(--color-zinc-50);
+}
+
+/* Range middle: light blue band */
+.date-range-picker .rdp-range_middle .rdp-day_button {
+  background: var(--color-zinc-200);
+  color: var(--color-zinc-600);
+  border-radius: 0;
+}
+
+:where(.dark, .dark *) .date-range-picker .rdp-range_middle .rdp-day_button {
+  background: var(--color-zinc-700);
+  color: var(--color-zinc-300);
+}
+
+/* Months side by side with gap */
+.date-range-picker .rdp-months {
+  display: flex;
+  gap: 1rem;
+}
+
+/* Streaming cursor blink: used by StreamingFooter */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Indeterminate progress bar: slides a bar back and forth */
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+.animate-indeterminate {
+  animation: indeterminate 1.5s ease-in-out infinite;
+}
+
+/* SwimLanes progress bar: animated width + margin slide */
+@keyframes swimlane-progress {
+  0% {
+    width: 0%;
+    margin-left: 0%;
+  }
+  50% {
+    width: 40%;
+    margin-left: 30%;
+  }
+  100% {
+    width: 0%;
+    margin-left: 100%;
+  }
+}
+
+/* TimelineView: growing bar animation for running agents */
+@keyframes timeline-bar-grow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+.timeline-bar-growing {
+  animation: timeline-bar-grow 1.5s ease-in-out infinite;
+}
+
+/* ── Live session "card draw" pulse ── */
+/* Poker deal feel: fast charge → snap peak → exhale → hold → repeat */
+
+/* Inner dot: rapid charge, bright snap, slow decay */
+@keyframes live-breathe {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    filter: brightness(1);
+  }
+  /* Fast charge — 40% of cycle */
+  40% {
+    transform: scale(1.5);
+    box-shadow: 0 0 10px 5px rgba(34, 197, 94, 0.6);
+    filter: brightness(1.6);
+  }
+  /* Snap peak — brief flash */
+  50% {
+    transform: scale(1.25);
+    box-shadow: 0 0 18px 8px rgba(74, 222, 128, 0.45);
+    filter: brightness(2);
+  }
+  /* Exhale back down */
+  75% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.1);
+    filter: brightness(0.85);
+  }
+  /* Hold dim */
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    filter: brightness(1);
+  }
+}
+
+/* Ring: tight charge burst → fast blast out → gone */
+@keyframes live-breathe-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  /* Quick hold before blast */
+  15% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  /* Blast out fast */
+  55% {
+    transform: scale(3.2);
+    opacity: 0.15;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* Secondary delayed ring for zip/echo feel */
+@keyframes live-breathe-ring2 {
+  0%, 20% {
+    transform: scale(1);
+    opacity: 0;
+  }
+  35% {
+    transform: scale(1.3);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(3.8);
+    opacity: 0;
+  }
+}
+
+.animate-live-breathe {
+  animation: live-breathe 1.6s cubic-bezier(0.25, 0, 0.1, 1) infinite;
+}
+.animate-live-ring {
+  animation: live-breathe-ring 1.6s cubic-bezier(0.1, 0, 0.2, 1) infinite;
+}
+.animate-live-ring2 {
+  animation: live-breathe-ring2 1.6s cubic-bezier(0.1, 0, 0.2, 1) infinite;
+}
+
+/* Compacting card: border-color + box-shadow + opacity — all animate together */
+@keyframes live-compact-breathe {
+  0%   {
+    border-color: var(--color-zinc-400);
+    box-shadow: 0 0 0 3px rgba(56,189,248,0.25), 0 0 16px 0 rgba(56,189,248,0.15);
+    opacity: 1;
+  }
+  45%  {
+    border-color: var(--color-zinc-300);
+    box-shadow: 0 0 0 6px rgba(125,211,252,0.40), 0 0 32px 4px rgba(56,189,248,0.30);
+    opacity: 0.62;
+  }
+  60%  {
+    border-color: var(--color-zinc-200);
+    box-shadow: 0 0 0 8px rgba(186,230,253,0.50), 0 0 42px 8px rgba(56,189,248,0.38);
+    opacity: 0.55;
+  }
+  75%  {
+    border-color: var(--color-zinc-300);
+    box-shadow: 0 0 0 5px rgba(125,211,252,0.30), 0 0 24px 2px rgba(56,189,248,0.20);
+    opacity: 0.78;
+  }
+  100% {
+    border-color: var(--color-zinc-400);
+    box-shadow: 0 0 0 3px rgba(56,189,248,0.25), 0 0 16px 0 rgba(56,189,248,0.15);
+    opacity: 1;
+  }
+}
+.animate-live-compact-breathe {
+  border-width: 2px !important;
+  animation: live-compact-breathe 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+/* Inner content wrapper */
+.animate-live-compact-content { display: contents; }
+
+/* Compacting state: sky-blue shimmer sweep on the spinner bar */
+@keyframes live-compact-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+.animate-live-compact-bar {
+  background: linear-gradient(90deg, var(--color-zinc-800), var(--color-zinc-400), var(--color-zinc-300), var(--color-zinc-400), var(--color-zinc-800));
+  background-size: 300% 100%;
+  animation: live-compact-shimmer 3s linear infinite;
+}
+
+/* Search highlight: <mark> tags from backend snippets */
+mark {
+  background: var(--color-zinc-300);
+  color: var(--color-zinc-900);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+:where(.dark, .dark *) mark {
+  background: var(--color-zinc-700);
+  color: var(--color-zinc-200);
+}
+
+/* ── Diff block: GitHub-style line backgrounds ── */
+/* CompactCodeBlock adds data-diff attributes to lines when language=diff */
+.diff-block [data-diff="add"] {
+  background: rgba(46, 160, 67, 0.15);
+  display: inline-block;
+  width: 100%;
+}
+.diff-block [data-diff="del"] {
+  background: rgba(248, 81, 73, 0.15);
+  display: inline-block;
+  width: 100%;
+}
+.diff-block [data-diff="hunk"] {
+  background: rgba(56, 139, 253, 0.1);
+  display: inline-block;
+  width: 100%;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Skip to content link */
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: 9999;
+}
+.skip-to-content:focus {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: auto;
+  height: auto;
+  padding: 0.75rem 1.5rem;
+  background: var(--color-zinc-600);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  z-index: 9999;
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+/* Zinc foundations. Green, amber and red are reserved for status. */
+:root {
+  --cv-gray-50: var(--color-zinc-50);
+  --cv-gray-100: var(--color-zinc-100);
+  --cv-gray-200: var(--color-zinc-200);
+  --cv-gray-300: var(--color-zinc-300);
+  --cv-gray-400: var(--color-zinc-400);
+  --cv-gray-500: var(--color-zinc-500);
+  --cv-gray-600: var(--color-zinc-600);
+  --cv-gray-700: var(--color-zinc-700);
+  --cv-gray-800: var(--color-zinc-800);
+  --cv-gray-900: var(--color-zinc-900);
+  --cv-gray-950: var(--color-zinc-950);
+}
+@theme {
+  --color-slate-50: var(--color-zinc-50);
+  --color-slate-100: var(--color-zinc-100);
+  --color-slate-200: var(--color-zinc-200);
+  --color-slate-300: var(--color-zinc-300);
+  --color-slate-400: var(--color-zinc-400);
+  --color-slate-500: var(--color-zinc-500);
+  --color-slate-600: var(--color-zinc-600);
+  --color-slate-700: var(--color-zinc-700);
+  --color-slate-800: var(--color-zinc-800);
+  --color-slate-900: var(--color-zinc-900);
+  --color-slate-950: var(--color-zinc-950);
+  --color-neutral-50: var(--color-zinc-50);
+  --color-neutral-100: var(--color-zinc-100);
+  --color-neutral-200: var(--color-zinc-200);
+  --color-neutral-300: var(--color-zinc-300);
+  --color-neutral-400: var(--color-zinc-400);
+  --color-neutral-500: var(--color-zinc-500);
+  --color-neutral-600: var(--color-zinc-600);
+  --color-neutral-700: var(--color-zinc-700);
+  --color-neutral-800: var(--color-zinc-800);
+  --color-neutral-900: var(--color-zinc-900);
+  --color-neutral-950: var(--color-zinc-950);
+  --color-blue-50: var(--color-zinc-50);
+  --color-blue-100: var(--color-zinc-100);
+  --color-blue-200: var(--color-zinc-200);
+  --color-blue-300: var(--color-zinc-300);
+  --color-blue-400: var(--color-zinc-400);
+  --color-blue-500: var(--color-zinc-500);
+  --color-blue-600: var(--color-zinc-600);
+  --color-blue-700: var(--color-zinc-700);
+  --color-blue-800: var(--color-zinc-800);
+  --color-blue-900: var(--color-zinc-900);
+  --color-blue-950: var(--color-zinc-950);
+  --color-indigo-50: var(--color-zinc-50);
+  --color-indigo-100: var(--color-zinc-100);
+  --color-indigo-200: var(--color-zinc-200);
+  --color-indigo-300: var(--color-zinc-300);
+  --color-indigo-400: var(--color-zinc-400);
+  --color-indigo-500: var(--color-zinc-500);
+  --color-indigo-600: var(--color-zinc-600);
+  --color-indigo-700: var(--color-zinc-700);
+  --color-indigo-800: var(--color-zinc-800);
+  --color-indigo-900: var(--color-zinc-900);
+  --color-indigo-950: var(--color-zinc-950);
+  --color-violet-50: var(--color-zinc-50);
+  --color-violet-100: var(--color-zinc-100);
+  --color-violet-200: var(--color-zinc-200);
+  --color-violet-300: var(--color-zinc-300);
+  --color-violet-400: var(--color-zinc-400);
+  --color-violet-500: var(--color-zinc-500);
+  --color-violet-600: var(--color-zinc-600);
+  --color-violet-700: var(--color-zinc-700);
+  --color-violet-800: var(--color-zinc-800);
+  --color-violet-900: var(--color-zinc-900);
+  --color-violet-950: var(--color-zinc-950);
+  --color-purple-50: var(--color-zinc-50);
+  --color-purple-100: var(--color-zinc-100);
+  --color-purple-200: var(--color-zinc-200);
+  --color-purple-300: var(--color-zinc-300);
+  --color-purple-400: var(--color-zinc-400);
+  --color-purple-500: var(--color-zinc-500);
+  --color-purple-600: var(--color-zinc-600);
+  --color-purple-700: var(--color-zinc-700);
+  --color-purple-800: var(--color-zinc-800);
+  --color-purple-900: var(--color-zinc-900);
+  --color-purple-950: var(--color-zinc-950);
+  --color-sky-50: var(--color-zinc-50);
+  --color-sky-100: var(--color-zinc-100);
+  --color-sky-200: var(--color-zinc-200);
+  --color-sky-300: var(--color-zinc-300);
+  --color-sky-400: var(--color-zinc-400);
+  --color-sky-500: var(--color-zinc-500);
+  --color-sky-600: var(--color-zinc-600);
+  --color-sky-700: var(--color-zinc-700);
+  --color-sky-800: var(--color-zinc-800);
+  --color-sky-900: var(--color-zinc-900);
+  --color-sky-950: var(--color-zinc-950);
+  --color-cyan-50: var(--color-zinc-50);
+  --color-cyan-100: var(--color-zinc-100);
+  --color-cyan-200: var(--color-zinc-200);
+  --color-cyan-300: var(--color-zinc-300);
+  --color-cyan-400: var(--color-zinc-400);
+  --color-cyan-500: var(--color-zinc-500);
+  --color-cyan-600: var(--color-zinc-600);
+  --color-cyan-700: var(--color-zinc-700);
+  --color-cyan-800: var(--color-zinc-800);
+  --color-cyan-900: var(--color-zinc-900);
+  --color-cyan-950: var(--color-zinc-950);
+  --color-teal-50: var(--color-zinc-50);
+  --color-teal-100: var(--color-zinc-100);
+  --color-teal-200: var(--color-zinc-200);
+  --color-teal-300: var(--color-zinc-300);
+  --color-teal-400: var(--color-zinc-400);
+  --color-teal-500: var(--color-zinc-500);
+  --color-teal-600: var(--color-zinc-600);
+  --color-teal-700: var(--color-zinc-700);
+  --color-teal-800: var(--color-zinc-800);
+  --color-teal-900: var(--color-zinc-900);
+  --color-teal-950: var(--color-zinc-950);
+  --color-pink-50: var(--color-zinc-50);
+  --color-pink-100: var(--color-zinc-100);
+  --color-pink-200: var(--color-zinc-200);
+  --color-pink-300: var(--color-zinc-300);
+  --color-pink-400: var(--color-zinc-400);
+  --color-pink-500: var(--color-zinc-500);
+  --color-pink-600: var(--color-zinc-600);
+  --color-pink-700: var(--color-zinc-700);
+  --color-pink-800: var(--color-zinc-800);
+  --color-pink-900: var(--color-zinc-900);
+  --color-pink-950: var(--color-zinc-950);
+  --color-fuchsia-50: var(--color-zinc-50);
+  --color-fuchsia-100: var(--color-zinc-100);
+  --color-fuchsia-200: var(--color-zinc-200);
+  --color-fuchsia-300: var(--color-zinc-300);
+  --color-fuchsia-400: var(--color-zinc-400);
+  --color-fuchsia-500: var(--color-zinc-500);
+  --color-fuchsia-600: var(--color-zinc-600);
+  --color-fuchsia-700: var(--color-zinc-700);
+  --color-fuchsia-800: var(--color-zinc-800);
+  --color-fuchsia-900: var(--color-zinc-900);
+  --color-fuchsia-950: var(--color-zinc-950);
+  --color-rose-50: var(--color-zinc-50);
+  --color-rose-100: var(--color-zinc-100);
+  --color-rose-200: var(--color-zinc-200);
+  --color-rose-300: var(--color-zinc-300);
+  --color-rose-400: var(--color-zinc-400);
+  --color-rose-500: var(--color-zinc-500);
+  --color-rose-600: var(--color-zinc-600);
+  --color-rose-700: var(--color-zinc-700);
+  --color-rose-800: var(--color-zinc-800);
+  --color-rose-900: var(--color-zinc-900);
+  --color-rose-950: var(--color-zinc-950);
+  --color-orange-50: var(--color-zinc-50);
+  --color-orange-100: var(--color-zinc-100);
+  --color-orange-200: var(--color-zinc-200);
+  --color-orange-300: var(--color-zinc-300);
+  --color-orange-400: var(--color-zinc-400);
+  --color-orange-500: var(--color-zinc-500);
+  --color-orange-600: var(--color-zinc-600);
+  --color-orange-700: var(--color-zinc-700);
+  --color-orange-800: var(--color-zinc-800);
+  --color-orange-900: var(--color-zinc-900);
+  --color-orange-950: var(--color-zinc-950);
+  --color-yellow-50: var(--color-zinc-50);
+  --color-yellow-100: var(--color-zinc-100);
+  --color-yellow-200: var(--color-zinc-200);
+  --color-yellow-300: var(--color-zinc-300);
+  --color-yellow-400: var(--color-zinc-400);
+  --color-yellow-500: var(--color-zinc-500);
+  --color-yellow-600: var(--color-zinc-600);
+  --color-yellow-700: var(--color-zinc-700);
+  --color-yellow-800: var(--color-zinc-800);
+  --color-yellow-900: var(--color-zinc-900);
+  --color-yellow-950: var(--color-zinc-950);
+  --color-emerald-50: var(--color-zinc-50);
+  --color-emerald-100: var(--color-zinc-100);
+  --color-emerald-200: var(--color-zinc-200);
+  --color-emerald-300: var(--color-zinc-300);
+  --color-emerald-400: var(--color-zinc-400);
+  --color-emerald-500: var(--color-zinc-500);
+  --color-emerald-600: var(--color-zinc-600);
+  --color-emerald-700: var(--color-zinc-700);
+  --color-emerald-800: var(--color-zinc-800);
+  --color-emerald-900: var(--color-zinc-900);
+  --color-emerald-950: var(--color-zinc-950);
+}
+
+/* Shared layout rhythm for the existing dashboard surfaces. */
+body { background: var(--color-zinc-950); }
+:root { color-scheme: light; }
+.dark { color-scheme: dark; }
+button, a, input, select { -webkit-tap-highlight-color: transparent; }
+:where(button, a, input, select, [tabindex="0"]):focus-visible {
+  outline: 2px solid var(--color-zinc-400);
+  outline-offset: 3px;
+}
+.task-card { box-shadow: 0 1px 2px rgb(0 0 0 / 0.04); }
+.task-card p { overflow-wrap: anywhere; }
+.task-board .board-content { min-width: 0; }
+.task-board .task-card { line-height: 1.5; }
+@media (max-width: 1100px) {
+  .global-search { width: 200px; }
+  .board-content { padding-left: 20px; padding-right: 20px; }
+}
+@media (max-width: 700px) {
+  .app-header { height: 56px; padding-left: 16px; padding-right: 12px; gap: 12px; }
+  .global-search { width: auto; margin-right: 0; padding: 8px; border-color: transparent; }
+  .global-search .search-label { display: none; }
+  .task-board .board-content { padding: 12px 16px; }
+  .app-footer { padding-left: 16px; padding-right: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+.dark .shiki, .dark .shiki span { color: var(--color-zinc-300) !important; }
+.task-card :is(.bg-amber-50, .bg-amber-100) { background-color: var(--color-zinc-100); }
+.dark .task-card :is(.dark\:bg-amber-900\/10, .dark\:bg-amber-900\/20) { background-color: var(--color-zinc-900); }
+
+.mobile-sidebar-backdrop, .mobile-sidebar-drawer { top: 64px; }
+.mobile-sidebar-drawer { max-width: calc(100vw - 48px); }
+.mobile-sidebar-drawer > aside { max-width: 100%; }
+@media (max-width: 700px) {
+  .mobile-sidebar-backdrop, .mobile-sidebar-drawer { top: 56px; }
+}
+
+.session-grid .task-card { overflow-wrap: anywhere; overflow: hidden; }
+.session-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 12px; }
+@media (min-width: 1280px) { .session-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; } }
+@media (min-width: 1536px) { .session-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 639px) {
+  .task-board .board-content { padding: 12px; }
+  .session-grid { gap: 8px; }
+  .session-grid .task-card { padding: 12px; }
+  .session-grid .session-card-meta { font-size: 10px; gap: 4px; }
+  .session-grid .session-title { font-size: 13px; }
+}

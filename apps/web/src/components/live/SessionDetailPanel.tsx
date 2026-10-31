@@ -1,0 +1,772 @@
+import { ConversationThread } from '@claude-view/shared/components/conversation/ConversationThread'
+import { chatRegistry } from '@claude-view/shared/components/conversation/blocks/chat/registry'
+import { developerRegistry } from '@claude-view/shared/components/conversation/blocks/developer/registry'
+import { ConversationActionsProvider } from '@claude-view/shared/contexts/conversation-actions-context'
+import type { SessionOwnership } from '@claude-view/shared/types/generated/SessionOwnership'
+import {
+  Check,
+  CheckSquare,
+  Clock,
+  Copy,
+  FileDiff,
+  FileText,
+  GitBranch,
+  LayoutDashboard,
+  MessageSquare,
+  TreePine,
+  Users,
+  X
+} from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { useSearchParams } from 'react-router-dom'
+import { useChatPanel } from '../../hooks/use-chat-panel'
+import { useCommandExecutor } from '../../hooks/use-command-executor'
+import { useFileHistory } from '../../hooks/use-file-history'
+import { usePlanDocuments } from '../../hooks/use-plan-documents'
+import { useSessionDetail } from '../../hooks/use-session-detail'
+import { runtimeInfo } from '../../lib/runtime'
+import { formatModelName } from '../../lib/format-model'
+import { cn } from '../../lib/utils'
+import { useMonitorStore } from '../../store/monitor-store'
+import { cleanPreviewText } from '../../utils/get-session-title'
+import { CommitsPanel } from '../CommitsPanel'
+import { ErrorBoundary } from '../ErrorBoundary'
+import { FilesTouchedPanel, buildFilesTouched } from '../FilesTouchedPanel'
+
+import type { TaskItem } from '../../types/generated/TaskItem'
+import { TodoChecklist } from '../session/TodoChecklist'
+import { ChangesTab } from './ChangesTab'
+import { DisplayModeToggle } from './DisplayModeToggle'
+import { PlanTab } from './PlanTab'
+import { SessionBadges } from './SessionBadges'
+import { SubAgentBlockView } from './SubAgentBlockView'
+import { SubAgentPills } from './SubAgentPills'
+import { SwimLanes } from './SwimLanes'
+import { TaskDetailTab } from './TaskDetailTab'
+import { TasksOverviewSection } from './TasksOverviewSection'
+import { TimelineView } from './TimelineView'
+import { getEffectiveBranch } from './effective-branch'
+import type { SessionPanelData } from './session-panel-data'
+import { liveSessionToPanelData } from './session-panel-data'
+import type { LiveSession } from './use-live-sessions'
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+import type { DetailTabId } from '../../store/monitor-store'
+
+type TabId = DetailTabId
+
+interface SessionDetailPanelProps {
+  /** Live session (existing callers) */
+  session?: LiveSession
+  /** Unified panel data (new — for history detail) */
+  panelData?: SessionPanelData
+  onClose: () => void
+  /** When true, render inline as a flex child instead of a fixed portal overlay. */
+  inline?: boolean
+}
+
+// ---------------------------------------------------------------------------
+// Tab configuration
+// ---------------------------------------------------------------------------
+
+const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'chat', label: 'Chat', icon: MessageSquare },
+  { id: 'sub-agents', label: 'Sub-Agents', icon: Users },
+]
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Resize persistence
+// ---------------------------------------------------------------------------
+
+const PANEL_WIDTH_KEY = 'mc-panel-width'
+const INLINE_PANEL_WIDTH_KEY = 'mc-inline-panel-width'
+const DEFAULT_PANEL_WIDTH = 480
+const DEFAULT_INLINE_PANEL_WIDTH = 320 // w-72 — matches left sidenav
+const MIN_PANEL_WIDTH = 288
+
+function getStoredPanelWidth(isInline: boolean): number {
+  const key = isInline ? INLINE_PANEL_WIDTH_KEY : PANEL_WIDTH_KEY
+  const fallback = isInline ? DEFAULT_INLINE_PANEL_WIDTH : DEFAULT_PANEL_WIDTH
+  try {
+    const stored = localStorage.getItem(key)
+    if (stored) {
+      const w = Number.parseInt(stored, 10)
+      if (w >= MIN_PANEL_WIDTH && !Number.isNaN(w)) return w
+    }
+  } catch (e) {
+    console.debug('[SessionDetailPanel] localStorage access failed:', e)
+  }
+  return fallback
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+export function SessionDetailPanel({
+  session,
+  panelData: panelDataProp,
+  onClose,
+  inline,
+}: SessionDetailPanelProps) {
+  // Resolve to unified data shape
+  // Callers always provide either panelData (history) or session (live) — never neither.
+  // biome-ignore lint/style/noNonNullAssertion: callers guarantee panelDataProp or session is always set
+  const data: SessionPanelData = panelDataProp ?? liveSessionToPanelData(session!)
+  const isLive = !panelDataProp
+  const hasSubAgents = data.subAgents && data.subAgents.length > 0
+
+  // Live sessions: use SSE-driven version counters
+  // For history sessions, version is undefined → query key is stable → no unnecessary refetches
+  const editVersion = isLive ? session?.editCount : undefined
+  const taskVersion = isLive ? (session?.progressItems?.length ?? 0) : undefined
+
+  // For live sessions, fetch tasks from API (the SSE live stream does not include persistent task data)
+  const { data: liveSessionDetail } = useSessionDetail(isLive ? data.id : null, taskVersion)
+  const persistentTasks = isLive ? liveSessionDetail?.tasks : data.tasks
+  const hasPersistentTasks = persistentTasks && persistentTasks.length > 0
+  // Fallback: when persistent task files don't exist (cleaned up after session ends),
+  // derive from progressItems which the JSONL accumulator already parsed.
+  const derivedTasks: TaskItem[] | undefined =
+    !hasPersistentTasks && data.progressItems
+      ? data.progressItems
+        .filter((p) => p.source === 'task' && p.id)
+        .map((p) => ({
+          id: p.id!,
+          subject: p.title,
+          description: '',
+          activeForm: p.activeForm ?? '',
+          status: p.status,
+          blocks: [] as string[],
+          blockedBy: [] as string[],
+          owner: null,
+        }))
+      : undefined
+  const tasks = hasPersistentTasks ? persistentTasks : derivedTasks
+  const hasTasks = tasks && tasks.length > 0
+  const todos = isLive ? liveSessionDetail?.todos : data.todos
+  const hasTodos = todos && todos.length > 0
+
+  // File history (fetched on demand for all sessions)
+  const { data: fileHistory } = useFileHistory(data.id, editVersion)
+  const hasChanges = fileHistory && fileHistory.files.length > 0
+
+  // Plan documents — hook takes sessionId (endpoint resolves slug server-side)
+  const { data: planDocuments } = usePlanDocuments(
+    data.id,
+    data.hasPlans || !!data.slug || runtimeInfo.mode === 'codex',
+    editVersion,
+  )
+  const hasPlans = planDocuments && planDocuments.length > 0
+
+  // Derive ownership from SSE session data (null when no live data)
+  const detailOwnership: SessionOwnership | null = session?.ownership ?? null
+
+  // ---- FSM: single state machine replaces useConversation + TanStack chain ----
+  const {
+    store: convStore,
+    dispatch: convDispatch,
+    pendingCmdsRef: convPendingCmdsRef,
+    blocks: convBlocks,
+    historyPagination: convHistoryPagination,
+  } = useChatPanel(data.id)
+  useCommandExecutor(convStore, convDispatch, convPendingCmdsRef)
+
+  // Dispatch ownership so FSM transitions correctly for CLI-owned sessions
+  useEffect(() => {
+    convDispatch({ type: 'OWNERSHIP_CHANGED', tier: detailOwnership })
+  }, [detailOwnership, convDispatch])
+
+  // Pagination: stable callback — matches ChatSession pattern
+  const handleLoadOlderHistory = useCallback(() => {
+    convDispatch({ type: 'LOAD_OLDER_HISTORY' })
+  }, [convDispatch])
+
+  // ---- URL param: ?tab= (with backward compat for removed terminal/log tabs) ----
+  const [searchParams] = useSearchParams()
+  const rawTab = searchParams.get('tab')
+  const preferredDetailTab = useMonitorStore((s) => s.preferredDetailTab)
+  const setPreferredDetailTab = useMonitorStore((s) => s.setPreferredDetailTab)
+  const initialTabs = new Set<TabId>(['overview', 'chat', 'sub-agents'])
+  const requestedTab = rawTab === 'terminal' || rawTab === 'log' ? 'chat' : rawTab ?? (inline ? 'overview' : preferredDetailTab)
+  const retainedTabs = new Set<TabId>(['overview', 'chat', 'sub-agents', 'tasks', 'changes', 'plan'])
+  const resolvedTab: TabId = (rawTab ? retainedTabs : initialTabs).has(requestedTab as TabId) ? requestedTab as TabId : 'overview'
+
+  // ---- Local state ----
+  const [activeTab, setActiveTabRaw] = useState<TabId>(resolvedTab)
+  const displayMode = useMonitorStore((s) => s.displayMode)
+
+  // Wrap setActiveTab to also persist the preference
+  const setActiveTab = useCallback(
+    (tab: TabId) => {
+      setActiveTabRaw(tab)
+      setPreferredDetailTab(tab)
+    },
+    [setPreferredDetailTab],
+  )
+
+  // Hook events are now fetched via FSM command (FETCH_HOOK_EVENTS) and merged
+  // into convBlocks by phase handlers — no separate hook needed here.
+
+  const [drillDownAgent, setDrillDownAgent] = useState<{
+    agentId: string
+    agentType: string
+    description: string
+  } | null>(null)
+
+  // Resizable width (persisted to localStorage)
+  const [panelWidth, setPanelWidth] = useState(() => getStoredPanelWidth(!!inline))
+  const panelWidthRef = useRef(panelWidth)
+  const [isResizing, setIsResizing] = useState(false)
+
+  // Slide-in animation: mount with translate-x-full, then flip to translate-x-0
+  // Skipped in inline mode (already visible in the flex layout)
+  const [isVisible, setIsVisible] = useState(!!inline)
+  useEffect(() => {
+    if (inline) return
+    // Trigger animation on next frame so the initial translate-x-full renders first
+    const raf = requestAnimationFrame(() => setIsVisible(true))
+    return () => cancelAnimationFrame(raf)
+  }, [inline])
+
+  // Always-available tabs (not dependent on async data)
+  const ALWAYS_AVAILABLE: Set<TabId> = new Set(['overview', 'chat', 'sub-agents'])
+
+  // Reset tab and drill-down when session changes — use preferred tab with graceful fallback.
+  // Conditional tabs (tasks, changes, plan) load async, so we can't know availability at t=0.
+  // Only resolve to preferred if it's always-available; otherwise fall back to overview.
+  // This avoids content-jumping (UX anti-pattern) when async tabs load later.
+  const prevDataIdRef = useRef(data.id)
+  useEffect(() => {
+    if (prevDataIdRef.current !== data.id) {
+      const target = !inline && ALWAYS_AVAILABLE.has(preferredDetailTab) ? preferredDetailTab : 'overview'
+      setActiveTabRaw(target)
+      setDrillDownAgent(null)
+      prevDataIdRef.current = data.id
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.id, preferredDetailTab])
+
+  // ESC key handling: drill-down first, then close
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (drillDownAgent) {
+          setDrillDownAgent(null)
+        } else {
+          onClose()
+        }
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose, drillDownAgent])
+
+  const handleDrillDown = useCallback((agentId: string, agentType: string, description: string) => {
+    setDrillDownAgent({ agentId, agentType, description })
+  }, [])
+
+  // Copy session ID to clipboard
+  const [copied, setCopied] = useState(false)
+  const copySessionId = useCallback(() => {
+    navigator.clipboard.writeText(data.id).then(
+      () => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1500)
+      },
+      (err) => {
+        console.debug('[SessionDetailPanel] Clipboard write failed:', err)
+      },
+    )
+  }, [data.id])
+
+  // Drag-to-resize the left edge
+  const handleResizeStart = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      e.preventDefault()
+      setIsResizing(true)
+      const startX = e.clientX
+      const startW = panelWidthRef.current
+
+      const onMove = (ev: PointerEvent) => {
+        const delta = startX - ev.clientX
+        const maxWidth = window.innerWidth * 0.9
+        const newWidth = Math.round(Math.min(maxWidth, Math.max(MIN_PANEL_WIDTH, startW + delta)))
+        panelWidthRef.current = newWidth
+        setPanelWidth(newWidth)
+      }
+
+      const onUp = () => {
+        setIsResizing(false)
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+        try {
+          localStorage.setItem(
+            inline ? INLINE_PANEL_WIDTH_KEY : PANEL_WIDTH_KEY,
+            String(panelWidthRef.current),
+          )
+        } catch (e) {
+          console.debug('[SessionDetailPanel] localStorage access failed:', e)
+        }
+      }
+
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+    },
+    [inline],
+  )
+
+  // ---- Derived values ----
+  const statusLabel = runtimeInfo.mode === 'codex'
+    ? data.agentState?.label ?? 'State unverified'
+    : data.status === 'working' ? 'Running' : data.status === 'paused' ? 'Paused' : 'Done'
+  const statusColor =
+    data.status === 'working'
+      ? 'text-zinc-600 dark:text-zinc-400'
+      : data.status === 'paused'
+        ? 'text-zinc-600 dark:text-zinc-400'
+        : 'text-gray-500 dark:text-gray-400'
+  // ---- Render ----
+  const content = (
+    <div
+      className={cn(
+        inline
+          ? 'relative h-full flex-shrink-0 overflow-hidden border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
+          : cn(
+            'fixed top-0 right-0 h-screen z-50',
+            'bg-white dark:bg-gray-950',
+            'border-l border-gray-200 dark:border-gray-800',
+            'shadow-2xl shadow-black/50',
+            'transition-transform duration-200 ease-out',
+            isVisible ? 'translate-x-0' : 'translate-x-full',
+          ),
+        'flex flex-col',
+        isResizing && 'select-none',
+      )}
+      style={{ width: panelWidth, maxWidth: inline ? '100%' : '94vw' }}
+    >
+      {/* Resize handle (left edge) */}
+      <div
+        onPointerDown={handleResizeStart}
+        className="absolute top-0 left-0 w-1.5 h-full cursor-col-resize z-10 group"
+      >
+        <div className="w-px h-full mx-auto bg-transparent group-hover:bg-zinc-500/40 group-active:bg-zinc-500/60 transition-colors" />
+      </div>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* Header                                                          */}
+      {/* ---------------------------------------------------------------- */}
+      <div className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 flex-shrink-0">
+        {/* Row 1: Project name + close */}
+        <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+          <span
+            className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex-1"
+            title={data.projectPath}
+          >
+            {data.projectDisplayName || data.project}
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close detail panel"
+            className="text-gray-400 dark:text-zinc-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 flex-shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Row 2: Metadata chips */}
+        <div className="flex items-center gap-2 px-4 pb-2.5 flex-wrap">
+          {(() => {
+            const { branch, driftOrigin, isWorktree } = getEffectiveBranch(
+              data.gitBranch,
+              data.worktreeBranch ?? null,
+              data.isWorktree ?? false,
+            )
+            if (!branch) return null
+            return (
+              <span
+                className="inline-flex items-center gap-1 text-xs font-mono text-gray-500 dark:text-zinc-400"
+                title={branch}
+              >
+                <GitBranch className="w-3 h-3 flex-shrink-0" />
+                {branch}
+                {isWorktree && (
+                  <TreePine className="w-3 h-3 flex-shrink-0 text-zinc-600 dark:text-zinc-400" />
+                )}
+                {driftOrigin && (
+                  <span className="text-xs text-gray-400 dark:text-zinc-400 ml-0.5">
+                    {'↗'}
+                    {driftOrigin}
+                  </span>
+                )}
+              </span>
+            )
+          })()}
+
+          <button
+            type="button"
+            onClick={copySessionId}
+            title={`Copy session ID: ${data.id}`}
+            className="inline-flex items-center gap-1 text-xs font-mono text-gray-400 dark:text-zinc-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          >
+            {copied ? <Check className="w-3 h-3 text-zinc-500" /> : <Copy className="w-3 h-3" />}
+            {data.id.slice(0, 8)}
+          </button>
+
+          <div className="flex-1" />
+
+          <span className="text-xs text-gray-400 dark:text-zinc-400 tabular-nums">
+            Turn {data.turnCount}
+          </span>
+        </div>
+      </div>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* Tab bar                                                         */}
+      {/* ---------------------------------------------------------------- */}
+      <div
+        className="flex items-center border-b border-gray-200 dark:border-gray-800 flex-shrink-0 overflow-x-auto"
+        role="tablist"
+      >
+        {TABS.map((tab) => {
+          const Icon = tab.icon
+          return (
+            <button
+              type="button"
+              key={tab.id}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              onClick={() => {
+                setActiveTab(tab.id)
+                setDrillDownAgent(null)
+              }}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-colors border-b-2',
+                activeTab === tab.id
+                  ? 'border-zinc-500 text-zinc-600 dark:text-zinc-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-400',
+              )}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </button>
+          )
+        })}
+
+        {/* Conditional tabs — only shown when data exists */}
+        {(hasTasks || hasTodos) && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'tasks'}
+            onClick={() => {
+              setActiveTab('tasks')
+              setDrillDownAgent(null)
+            }}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-colors border-b-2',
+              activeTab === 'tasks'
+                ? 'border-zinc-500 text-zinc-600 dark:text-zinc-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-400',
+            )}
+          >
+            <CheckSquare className="w-3.5 h-3.5" />
+            Tasks
+          </button>
+        )}
+        {hasChanges && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'changes'}
+            onClick={() => {
+              setActiveTab('changes')
+              setDrillDownAgent(null)
+            }}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-colors border-b-2',
+              activeTab === 'changes'
+                ? 'border-zinc-500 text-zinc-600 dark:text-zinc-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-400',
+            )}
+          >
+            <FileDiff className="w-3.5 h-3.5" />
+            Changes
+          </button>
+        )}
+        {hasPlans && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'plan'}
+            onClick={() => {
+              setActiveTab('plan')
+              setDrillDownAgent(null)
+            }}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-colors border-b-2',
+              activeTab === 'plan'
+                ? 'border-zinc-500 text-zinc-600 dark:text-zinc-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-400',
+            )}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            Plan
+          </button>
+        )}
+        {/* Display mode toggle — only shown on Chat tab */}
+        {activeTab === 'chat' && (
+          <>
+            <div className="flex-1" />
+            <DisplayModeToggle className="mr-2" />
+          </>
+        )}
+      </div>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* Tab content                                                     */}
+      {/* ---------------------------------------------------------------- */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {/* ---- Overview tab ---- */}
+        {activeTab === 'overview' && (
+          <div className="p-4 overflow-y-auto h-full space-y-3">
+            {/* ── Quick status (lightweight metadata → inline strip, not card-worthy) ── */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className={cn('inline-flex items-center gap-1.5 font-medium', statusColor)}>
+                <span
+                  className={cn(
+                    'w-1.5 h-1.5 rounded-full flex-shrink-0',
+                    data.status === 'working' && 'bg-zinc-500 animate-pulse',
+                    data.status === 'paused' && 'bg-zinc-500',
+                    data.status !== 'working' &&
+                    data.status !== 'paused' &&
+                    'bg-gray-400 dark:bg-gray-500',
+                  )}
+                />
+                {statusLabel}
+              </span>
+              <span className="text-gray-300 dark:text-gray-600 select-none" aria-hidden>
+                ·
+              </span>
+              <span className="font-mono text-gray-600 dark:text-gray-400">
+                {data.modelDisplayName ??
+                  (data.model ? formatModelName(data.model) : null) ??
+                  'unknown'}
+              </span>
+            </div>
+
+            {/* ── Session metadata badges (vim, agent, output style, worktree) ── */}
+            <SessionBadges
+              vimMode={data.statuslineVimMode}
+              agentName={data.statuslineAgentName}
+              agentContext={data.currentActivity}
+              outputStyle={data.statuslineOutputStyle}
+              worktreeName={data.statuslineWorktreeName}
+              worktreePath={data.statuslineWorktreePath}
+              worktreeBranch={data.statuslineWorktreeBranch}
+              worktreeOriginalCwd={data.statuslineWorktreeOriginalCwd}
+              worktreeOriginalBranch={data.statuslineWorktreeOriginalBranch}
+            />
+
+            {/* ── Tasks (first section — primary monitoring concern) ── */}
+            {data.progressItems && data.progressItems.length > 0 && (
+              <TasksOverviewSection items={data.progressItems} />
+            )}
+
+            {/* ── Sub-agents (clickable → Sub-Agents tab) ── */}
+            {hasSubAgents && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('sub-agents')}
+                className="w-full text-left rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 p-3 hover:bg-gray-100 dark:hover:bg-gray-800/70 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Users className="w-3.5 h-3.5 text-gray-400 dark:text-zinc-400" />
+                  <span className="text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide">
+                    Sub-Agents ({(data.subAgents ?? []).length})
+                  </span>
+                </div>
+                <SubAgentPills subAgents={data.subAgents ?? []} />
+              </button>
+            )}
+
+            {/* ── Mini timeline (clickable → Sub-Agents tab) ── */}
+            {hasSubAgents && data.startedAt && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('sub-agents')}
+                className="w-full text-left rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 p-3 hover:bg-gray-100 dark:hover:bg-gray-800/70 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Clock className="w-3.5 h-3.5 text-gray-400 dark:text-zinc-400" />
+                  <span className="text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide">
+                    Timeline
+                  </span>
+                </div>
+                <TimelineView
+                  subAgents={data.subAgents ?? []}
+                  sessionStartedAt={data.startedAt}
+                  sessionDurationMs={
+                    data.status === 'done'
+                      ? ((data.lastActivityAt ?? 0) - data.startedAt) * 1000
+                      : Date.now() - data.startedAt * 1000
+                  }
+                />
+              </button>
+            )}
+
+            {/* ── Last user message ── */}
+            {data.lastUserMessage && (
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 p-3">
+                <span className="text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide">
+                  Last Prompt
+                </span>
+                <p className="text-xs text-gray-700 dark:text-gray-300 mt-1.5 line-clamp-3">
+                  {cleanPreviewText(data.lastUserMessage)}
+                </p>
+              </div>
+            )}
+
+            {/* ── Files Touched (history-only) ── */}
+            {data.historyExtras?.sessionDetail && (runtimeInfo.mode !== 'codex' || data.historyExtras.sessionDetail.filesEditedCount > 0) && (
+              <FilesTouchedPanel
+                files={buildFilesTouched(
+                  data.historyExtras.sessionDetail.filesRead ?? [],
+                  data.historyExtras.sessionDetail.filesEdited ?? [],
+                )}
+              />
+            )}
+
+            {/* ── Commits (history-only) ── */}
+            {data.historyExtras?.sessionDetail && runtimeInfo.mode !== 'codex' && (
+              <CommitsPanel commits={data.historyExtras.sessionDetail.commits ?? []} />
+            )}
+          </div>
+        )}
+
+        {/* ---- Chat tab (conversation thread with mode toggle) ---- */}
+        {activeTab === 'chat' && (
+          <div className="flex flex-col h-full overflow-hidden min-h-0">
+            <ErrorBoundary>
+              <ConversationActionsProvider
+                actions={{
+                  retryMessage: (localId) => convDispatch({ type: 'RETRY_MESSAGE', localId }),
+                  respondPermission: (rid, allowed, perms) =>
+                    convDispatch({
+                      type: 'RESPOND_PERMISSION',
+                      requestId: rid,
+                      allowed,
+                      updatedPermissions: perms,
+                    }),
+                  answerQuestion: (rid, answers) =>
+                    convDispatch({ type: 'ANSWER_QUESTION', requestId: rid, answers }),
+                  approvePlan: (rid, approved, feedback, bypassPermissions) =>
+                    convDispatch({
+                      type: 'APPROVE_PLAN',
+                      requestId: rid,
+                      approved,
+                      feedback,
+                      bypassPermissions,
+                    }),
+                  submitElicitation: (rid, response) =>
+                    convDispatch({ type: 'SUBMIT_ELICITATION', requestId: rid, response }),
+                }}
+              >
+                <ConversationThread
+                  blocks={convBlocks}
+                  renderers={displayMode === 'chat' ? chatRegistry : developerRegistry}
+                  filterBar={displayMode === 'developer'}
+                  compact
+                  onStartReached={handleLoadOlderHistory}
+                  isFetchingOlder={convHistoryPagination.isFetchingOlder}
+                  hasOlderMessages={convHistoryPagination.hasOlderMessages}
+                />
+              </ConversationActionsProvider>
+            </ErrorBoundary>
+          </div>
+        )}
+
+        {/* ---- Sub-Agents tab (merged with Timeline) ---- */}
+        {activeTab === 'sub-agents' && (
+          <div className="flex flex-col h-full overflow-hidden">
+            {drillDownAgent ? (
+              <SubAgentBlockView
+                key={drillDownAgent.agentId}
+                sessionId={data.id}
+                agentId={drillDownAgent.agentId}
+                agentType={drillDownAgent.agentType}
+                description={drillDownAgent.description}
+                onClose={() => setDrillDownAgent(null)}
+              />
+            ) : hasSubAgents ? (
+              <>
+                {/* Swim lanes (~50% height) */}
+                <div className="flex-1 min-h-0 overflow-y-auto p-4">
+                  <SwimLanes
+                    subAgents={data.subAgents ?? []}
+                    sessionActive={data.status === 'working'}
+                    onDrillDown={handleDrillDown}
+                  />
+                </div>
+
+                {/* Timeline (~50% height, only when startedAt is available) */}
+                {data.startedAt && (
+                  <div className="flex-1 min-h-0 overflow-y-auto p-4 border-t border-gray-200 dark:border-gray-800">
+                    <TimelineView
+                      subAgents={data.subAgents ?? []}
+                      sessionStartedAt={data.startedAt}
+                      sessionDurationMs={
+                        data.status === 'done'
+                          ? ((data.lastActivityAt ?? 0) - data.startedAt) * 1000
+                          : Date.now() - data.startedAt * 1000
+                      }
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  No sub-agents in this session
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ---- Tasks tab ---- */}
+        {activeTab === 'tasks' && hasTasks && tasks && <TaskDetailTab tasks={tasks} />}
+        {activeTab === 'tasks' && hasTodos && todos && (
+          <div className="px-4 py-3">
+            <TodoChecklist todos={todos} />
+          </div>
+        )}
+
+        {/* ---- Changes tab ---- */}
+        {activeTab === 'changes' && hasChanges && fileHistory && (
+          <ChangesTab
+            fileHistory={fileHistory}
+            sessionId={data.id}
+            projectPath={data.projectPath}
+          />
+        )}
+
+        {/* ---- Plan tab ---- */}
+        {activeTab === 'plan' && hasPlans && planDocuments && <PlanTab plans={planDocuments} />}
+
+      </div>
+    </div>
+  )
+
+  return inline ? content : createPortal(content, document.body)
+}
