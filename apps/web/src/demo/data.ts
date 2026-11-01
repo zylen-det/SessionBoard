@@ -13,6 +13,16 @@ const titles = [
   'Add dark mode to settings', 'Investigate cache invalidation',
 ]
 const names = ['agentHUD', 'commerce-api', 'design-system', 'claude-view']
+
+export function demoRuntimeActivity(step: number): NonNullable<LiveSession['runtimeActivity']> {
+  const phases = [
+    { kind: 'tool', detail: 'Read src/components/Dashboard.tsx' },
+    { kind: 'reasoning', detail: 'Checking the implementation and edge cases' },
+    { kind: 'outputting', detail: '' },
+  ] as const
+  return { ...phases[step % phases.length], updatedAt: Date.now(), source: 'app-server' }
+}
+
 export const liveSessions: LiveSession[] = titles.slice(0, 8).map((title, i) => {
   const needsYou = i < 3
   const inputTokens = 24000 + i * 4700
@@ -24,6 +34,7 @@ export const liveSessions: LiveSession[] = titles.slice(0, 8).map((title, i) => 
     ...(structuredClone(defaults.LiveSession) as LiveSession),
     id: `demo-session-${String(i + 1).padStart(3, '0')}`, title, aiTitle: title,
     status: needsYou ? 'paused' : 'working',
+    runtimeActivity: needsYou ? null : demoRuntimeActivity(i - 3),
     startedAt: now - 600 - i * 370, lastUserMessageAt: now - 120 - i * 90, pid: 42100 + i,
     model: i % 3 === 0 ? 'claude-opus-4-6' : 'claude-sonnet-4-6',
     modelDisplayName: i % 3 === 0 ? 'Opus 4.6' : 'Sonnet 4.6',
@@ -53,7 +64,7 @@ export const liveSessions: LiveSession[] = titles.slice(0, 8).map((title, i) => 
 export const closedSessions: LiveSession[] = titles.slice(8).map((title, i) => ({
   ...structuredClone(liveSessions[i]), id: `demo-closed-${i}`, title, aiTitle: title,
   lastUserMessageAt: now - 150 - i * 300, status: 'done', closedAt: now - 180 - i * 300, lastActivityAt: now - 180 - i * 300,
-  pendingInteraction: null, currentActivity: 'Session ended', lastUserMessage: `${title}. Follow the existing architecture and verify the result.`,
+  pendingInteraction: null, runtimeActivity: null, currentActivity: 'Session ended', lastUserMessage: `${title}. Follow the existing architecture and verify the result.`,
   pid: null, agentState: { group: 'needs_you', state: 'idle', label: 'Completed', context: null },
 }))
 

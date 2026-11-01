@@ -20,6 +20,13 @@ try {
   await page.goto(base, { waitUntil: 'networkidle' })
   const main = page.locator('main')
   await expect(page.locator('[data-session-id]')).toHaveCount(12)
+  await expect(page.locator('.runtime-glyph')).toHaveCount(5)
+  for (const glyph of ['.runtime-term-c', '.runtime-dot', '.runtime-line']) {
+    await expect(page.locator('.runtime-glyph').filter({ has: page.locator(glyph) }).first()).toBeVisible()
+  }
+  const runningActivity = page.locator('[data-session-id="demo-session-004"] .session-runtime-activity')
+  const initialActivity = await runningActivity.textContent()
+  await expect.poll(() => runningActivity.textContent(), { timeout: 6000 }).not.toBe(initialActivity)
   const navigation = page.getByRole('navigation', { name: 'Main navigation', exact: true })
   await expect(navigation.getByRole('link')).toHaveCount(2)
   for (const label of ['Grid view', 'Board view', 'Monitor view', 'Harness view', 'New CLI session']) {

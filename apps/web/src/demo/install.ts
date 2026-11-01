@@ -1,5 +1,5 @@
 import { mockApi } from './api'
-import { closedSessions, conversation, liveSessions, summarize } from './data'
+import { closedSessions, conversation, demoRuntimeActivity, liveSessions, summarize } from './data'
 
 // Install before React mounts. Static production builds use the same mock layer.
 const realFetch = window.fetch.bind(window)
@@ -36,13 +36,21 @@ class DemoEventSource extends EventTarget {
       this.dispatchEvent(event); this.onopen?.(event)
       if (this.url.includes('/live/stream')) {
         this.emit('snapshot', { summary: summarize(), sessions: liveSessions, recentlyClosed: closedSessions })
+        let step = 0
         this.timer = setInterval(() => {
-          const session = liveSessions[3 + Math.floor(Date.now() / 5000) % 5]
-          session.lastActivityAt = Math.floor(Date.now() / 1000)
-          session.tokens.outputTokens += 48
-          session.tokens.totalTokens += 48
-          this.emit('session_upsert', { session })
-        }, 5000)
+          step++
+          liveSessions.forEach((session, i) => {
+            if (session.agentState.group !== 'autonomous') return
+            const updated = {
+              ...session,
+              runtimeActivity: demoRuntimeActivity(i - 3 + step),
+              lastActivityAt: Math.floor(Date.now() / 1000),
+              tokens: { ...session.tokens, outputTokens: session.tokens.outputTokens + 48, totalTokens: session.tokens.totalTokens + 48 },
+            }
+            liveSessions[i] = updated
+            this.emit('session_upsert', { session: updated })
+          })
+        }, 4000)
       } else if (this.url.includes('/indexing/')) {
         this.emit('done', { indexed: 84, total: 84, bytes_processed: 48000000, bytes_total: 48000000 })
       } else if (this.url.includes('/monitor/stream')) {

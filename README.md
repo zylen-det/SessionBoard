@@ -89,6 +89,8 @@ bun run preview
 
 靜態預覽與 `bun run dev` 保留 mock demo。`bun start` 讀取本機真實 Codex Session；OpenCode／Crush 尚未接入，也沒有新增 AI 語意摘要或離開期間差異追蹤。
 
+執行 `npm run dev` 後，running 卡片會展示 tool／reasoning／outputting 圖示，每 4 秒輪換階段，並播放文字垂直滑動淡入淡出的切換動畫。
+
 ## Mock 数据位置
 
 - `apps/web/src/demo/data.ts`：项目、会话、对话内容。
