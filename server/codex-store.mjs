@@ -35,7 +35,7 @@ export function parseRollout(records, { filePath = '', mtime = 0, size = 0, titl
     firstAt: seconds(meta.timestamp) || seconds(records[0]?.timestamp) || mtime,
     lastAt: 0, phase: 'idle', turnStartedAt: null, turnEndedAt: null,
     firstUser: '', lastUser: '', lastUserAt: null, lastAssistant: '', activity: '', plan: [], planText: '',
-    blocks: [], filesEdited: new Set(), toolCount: 0, promptCount: 0,
+    blocks: [], filesEdited: new Set(), fileChanges: new Map(), toolCount: 0, promptCount: 0,
     contextWindowTokens: null, contextWindowSize: null,
     tokens: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheCreationTokens: 0, cacheCreation5mTokens: 0, cacheCreation1hrTokens: 0, totalTokens: 0 },
   }
@@ -101,8 +101,26 @@ export function parseRollout(records, { filePath = '', mtime = 0, size = 0, titl
         if (kind === 'CommandExecution') addTool(item.id, 'Bash', { command: Array.isArray(item.command) ? item.command.join(' ') : item.command ?? '', cwd: item.cwd }, item.aggregated_output, timestamp, 'complete', item.exit_code != null && item.exit_code !== 0)
         if (kind === 'FileChange') {
           const changes = item.changes ?? []
-          if (['completed', 'complete'].includes(String(item.status).toLowerCase())) {
-            for (const change of Array.isArray(changes) ? changes : Object.entries(changes).map(([name, value]) => ({ ...value, path: name }))) if (change.path) data.filesEdited.add(change.path)
+          if (['completed', 'complete'].includes(String(item.status).toLowerCase()) && !seen.has(`tool:${item.id}`)) {
+            for (const change of Array.isArray(changes) ? changes : Object.entries(changes).map(([name, value]) => ({ ...value, path: name }))) {
+              if (!change.path) continue
+              data.filesEdited.add(change.path)
+              const file = data.fileChanges.get(change.path) ?? { filePath: change.path, fileHash: hash(change.path), versions: [], stats: { added: 0, removed: 0 }, recordedDiffs: [], statsAvailable: true }
+              const diff = change.unified_diff ?? change.diff
+              if (typeof diff === 'string' && diff.length > 0) {
+                file.recordedDiffs.push(diff)
+                if (!/^@@ /m.test(diff)) file.statsAvailable = false
+                // Only count hunk lines, excluding unified-diff file headers.
+                let inHunk = false
+                for (const line of diff.split('\n')) {
+                  if (line.startsWith('@@ ')) inHunk = true
+                  else if (line.startsWith('diff ')) inHunk = false
+                  else if (inHunk && line.startsWith('+')) file.stats.added++
+                  else if (inHunk && line.startsWith('-')) file.stats.removed++
+                }
+              } else file.statsAvailable = false
+              data.fileChanges.set(change.path, file)
+            }
           }
           addTool(item.id, 'apply_patch', { changes }, item.status ?? 'Recorded file change', timestamp)
         }
@@ -134,6 +152,15 @@ export function parseRollout(records, { filePath = '', mtime = 0, size = 0, titl
   data.parentId = spawn?.parent_thread_id ?? null
   data.isSubagent = typeof meta.source === 'object' && Boolean(meta.source?.subagent)
   return data
+}
+
+export function toFileHistory(data) {
+  const files = [...data.fileChanges.values()]
+  return { sessionId: data.id, files, summary: {
+    totalFiles: files.length,
+    totalAdded: files.reduce((sum, file) => sum + file.stats.added, 0),
+    totalRemoved: files.reduce((sum, file) => sum + file.stats.removed, 0),
+  } }
 }
 
 const emptyCost = () => ({ totalUsd: 0, inputCostUsd: 0, outputCostUsd: 0, cacheReadCostUsd: 0, cacheCreationCostUsd: 0, cacheSavingsUsd: 0, hasUnpricedUsage: true, unpricedInputTokens: 0, unpricedOutputTokens: 0, unpricedCacheReadTokens: 0, unpricedCacheCreationTokens: 0, pricedTokenCoverage: 0, totalCostSource: 'unavailable' })

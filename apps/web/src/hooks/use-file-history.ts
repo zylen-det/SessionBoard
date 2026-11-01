@@ -1,8 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import type { FileDiffResponse } from '../types/generated/FileDiffResponse'
 import type { FileHistoryResponse } from '../types/generated/FileHistoryResponse'
+import type { FileChange } from '../types/generated/FileChange'
 
-async function fetchFileHistory(sessionId: string): Promise<FileHistoryResponse> {
+export type SessionFileChange = FileChange & { recordedDiffs?: string[]; statsAvailable?: boolean }
+export type SessionFileHistory = Omit<FileHistoryResponse, 'files'> & { files: SessionFileChange[] }
+
+async function fetchFileHistory(sessionId: string): Promise<SessionFileHistory> {
   const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/file-history`)
   if (!response.ok) {
     throw new Error(`Failed to fetch file history: ${response.status}`)
@@ -18,6 +22,7 @@ export function useFileHistory(sessionId: string | null, version?: number) {
       return fetchFileHistory(sessionId)
     },
     enabled: !!sessionId,
+    refetchInterval: sessionId?.startsWith('codex:') ? 3000 : false,
   })
 }
 

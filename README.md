@@ -37,7 +37,7 @@ bun start
 | Finished turns | 僅代表收到 `task_complete`，不代表整個任務完成或 CLI 已退出 |
 | Waiting for input | 只有明確記錄請求事件才顯示；不能從未結束的工具呼叫推斷批准等待 |
 | 搜尋 | 標題、專案與已索引的訊息片段；不是整份歷史的全文搜尋 |
-| 檔案變更 | 支援已記錄的 native FileChange 檔名；未重建完整版本 diff／Git commit 關聯 |
+| 檔案變更 | Session 側欄顯示成功的 native FileChange 檔名與增刪行數，可展開紀錄中的 exact unified diff；缺少 diff 時不可展開，行數顯示 —。行數累計每次修改，不代表 Git 淨差異 |
 | 回覆、批准、控制 Agent | 未接入；繼續在原本的 Codex CLI／編輯器操作 |
 | AI 摘要／離開期間差異 | 未新增；目前只呈現紀錄本身已有的內容 |
 
@@ -61,6 +61,8 @@ bun run test:codex:browser
 bun install
 bun run dev
 ```
+
+開發時接入真實 Codex 資料，可先用 `PORT=4176 bun start` 啟動 API，再執行 `AGENTHUD_API_TARGET=http://127.0.0.1:4176 bun run dev`。
 
 打开 http://localhost:5173 。不需要安装 Claude CLI、登录或配置 API key。
 

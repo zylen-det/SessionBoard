@@ -37,6 +37,7 @@ import { FilesTouchedPanel, buildFilesTouched } from '../FilesTouchedPanel'
 import type { TaskItem } from '../../types/generated/TaskItem'
 import { TodoChecklist } from '../session/TodoChecklist'
 import { ChangesTab } from './ChangesTab'
+import { RecordedFileChanges } from './RecordedFileChanges'
 import { DisplayModeToggle } from './DisplayModeToggle'
 import { PlanTab } from './PlanTab'
 import { SessionBadges } from './SessionBadges'
@@ -637,8 +638,12 @@ export function SessionDetailPanel({
               </div>
             )}
 
+            {hasChanges && fileHistory.files.some((file) => file.recordedDiffs !== undefined) && (
+              <RecordedFileChanges key={data.id} files={fileHistory.files} />
+            )}
+
             {/* ── Files Touched (history-only) ── */}
-            {data.historyExtras?.sessionDetail && (runtimeInfo.mode !== 'codex' || data.historyExtras.sessionDetail.filesEditedCount > 0) && (
+            {data.historyExtras?.sessionDetail && runtimeInfo.mode !== 'codex' && (
               <FilesTouchedPanel
                 files={buildFilesTouched(
                   data.historyExtras.sessionDetail.filesRead ?? [],
