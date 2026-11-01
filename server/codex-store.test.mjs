@@ -17,6 +17,20 @@ const user = row('response_item', { type: 'message', role: 'user', content: [{ t
 const assistant = row('response_item', { type: 'message', role: 'assistant', channel: 'final', content: [{ type: 'output_text', text: 'Checks passed.' }] })
 const lines = (rows) => rows.map((item) => JSON.stringify(item)).join('\n') + '\n'
 
+test('context usage follows the latest request instead of cumulative session tokens', () => {
+  const usage = (used, limit = 200000) => row('event_msg', { type: 'token_count', info: {
+    total_token_usage: { input_tokens: 900000, total_tokens: 1000000 },
+    last_token_usage: { total_tokens: used }, model_context_window: limit,
+  } })
+  const live = toLive(parseRollout([meta(), usage(120000), usage(30000)], { now }))
+  assert.equal(live.contextWindowTokens, 30000)
+  assert.equal(live.statuslineContextWindowSize, 200000)
+  assert.equal(live.statuslineUsedPct, 15)
+  assert.equal(live.tokens.totalTokens, 1000000)
+  assert.equal(toLive(parseRollout([meta()], { now })).statuslineUsedPct, null)
+  assert.equal(toLive(parseRollout([meta(), usage(0)], { now })).statuslineUsedPct, 0)
+})
+
 test('reads older transcripts, plan steps and completed turns without exposing private instructions or reasoning', () => {
   const parsed = parseRollout([
     meta(), started, user,

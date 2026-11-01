@@ -87,6 +87,25 @@ function renderCard(session: LiveSession) {
 }
 
 describe('live SessionCard', () => {
+  it('shows context usage beside the status dot using the reported percentage', () => {
+    const { container } = renderCard(createMockSession({ statuslineUsedPct: 65, statuslineContextWindowSize: 200000, contextWindowTokens: 130000 }))
+    const meter = screen.getByRole('meter', { name: 'Context usage: 65%' })
+    expect(meter).toHaveAttribute('aria-valuenow', '65')
+    expect(meter).toHaveAttribute('title', 'Context usage: 65% (130,000 / 200,000 tokens)')
+    expect(meter.parentElement).toContainElement(container.querySelector('.session-status'))
+  })
+
+  it('derives context usage from current tokens and a known window size', () => {
+    renderCard(createMockSession({ contextWindowTokens: 30000, statuslineContextWindowSize: 200000 }))
+    expect(screen.getByRole('meter')).toHaveAttribute('aria-valuenow', '15')
+  })
+
+  it('does not invent a usage percentage without a known window size', () => {
+    renderCard(createMockSession())
+    expect(screen.getByRole('img', { name: 'Context usage unavailable' })).toBeInTheDocument()
+    expect(screen.queryByRole('meter')).not.toBeInTheDocument()
+  })
+
   it('uses the concise task title before the last user message', () => {
     const { container } = renderCard(
       createMockSession({

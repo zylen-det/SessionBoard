@@ -31,6 +31,7 @@ import { sortSubAgentsForCard } from './sort-sub-agents'
 import type { AgentState } from './types'
 import { boardStatus, GROUP_DEFAULTS, KNOWN_STATES } from './types'
 import { lastPromptTime } from './session-order'
+import { SessionContextRing } from './SessionContextRing'
 import { type LiveSession } from './use-live-sessions'
 
 // ─── StateBadge (exported — used by Harness, ListView, TerminalOverlay) ──
@@ -398,7 +399,10 @@ export function SessionCard({
       {/* ── Goal (the session's pinned /goal directive) ── */}
       {session.goal && <GoalLine goal={session.goal} />}
 
-      <span role="img" aria-label={statusLabel} title={statusLabel} className={`session-status absolute bottom-3 right-3 h-1.5 w-1.5 rounded-full ${statusDot}`} />
+      <div className="absolute bottom-2 right-3 flex items-center gap-2">
+        <SessionContextRing session={session} />
+        <span role="img" aria-label={statusLabel} title={statusLabel} className={`session-status h-1.5 w-1.5 rounded-full ${statusDot}`} />
+      </div>
       <div className="session-card-meta flex items-start justify-between gap-2 mb-1 text-xs text-zinc-500 dark:text-zinc-400">
         <p title={title} className="session-title min-w-0 flex-1 text-sm font-medium text-zinc-900 dark:text-zinc-100">{preview(title)}</p>
         <time dateTime={new Date(activityAt * 1000).toISOString()} title={`Last prompt: ${new Date(activityAt * 1000).toLocaleString()}`} className="shrink-0 tabular-nums">{ago}</time>

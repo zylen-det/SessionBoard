@@ -36,6 +36,7 @@ export function parseRollout(records, { filePath = '', mtime = 0, size = 0, titl
     lastAt: 0, phase: 'idle', turnStartedAt: null, turnEndedAt: null,
     firstUser: '', lastUser: '', lastUserAt: null, lastAssistant: '', activity: '', plan: [], planText: '',
     blocks: [], filesEdited: new Set(), toolCount: 0, promptCount: 0,
+    contextWindowTokens: null, contextWindowSize: null,
     tokens: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheCreationTokens: 0, cacheCreation5mTokens: 0, cacheCreation1hrTokens: 0, totalTokens: 0 },
   }
   const seen = new Set()
@@ -83,9 +84,13 @@ export function parseRollout(records, { filePath = '', mtime = 0, size = 0, titl
       if (p.type === 'turn_aborted' || p.type === 'task_aborted') { data.phase = 'interrupted'; data.turnEndedAt = timestamp }
       if (p.type === 'task_failed' || p.type === 'turn_failed') { data.phase = 'error'; data.activity = short(p.message ?? p.error ?? 'Turn failed') }
       if (p.type === 'request_user_input' || p.type === 'approval_required') { data.phase = 'waiting'; data.activity = short(p.message ?? 'Input requested in Codex') }
-      if (p.type === 'token_count' && p.info?.total_token_usage) {
+      if (p.type === 'token_count' && p.info) {
         const t = p.info.total_token_usage
-        data.tokens = { ...data.tokens, inputTokens: t.input_tokens ?? 0, outputTokens: t.output_tokens ?? 0, cacheReadTokens: t.cached_input_tokens ?? 0, totalTokens: t.total_tokens ?? 0 }
+        if (t) data.tokens = { ...data.tokens, inputTokens: t.input_tokens ?? 0, outputTokens: t.output_tokens ?? 0, cacheReadTokens: t.cached_input_tokens ?? 0, totalTokens: t.total_tokens ?? 0 }
+        const used = p.info.last_token_usage?.total_tokens
+        const limit = p.info.model_context_window
+        if (Number.isFinite(used) && used >= 0) data.contextWindowTokens = used
+        if (Number.isFinite(limit) && limit > 0) data.contextWindowSize = limit
       }
       if (!nativeMessages && !responseMessages && p.type === 'user_message') addMessage('user', p.message ?? '', timestamp)
       if (!nativeMessages && !responseMessages && p.type === 'agent_message') addMessage('assistant', p.message ?? '', timestamp)
@@ -146,7 +151,10 @@ export function toLive(data) {
     id: data.id, status: data.phase === 'working' ? 'working' : data.phase === 'completed' ? 'done' : 'paused',
     startedAt: data.firstAt, closedAt: data.phase === 'completed' ? data.turnEndedAt : null,
     control: null, ownership: null, pendingInteraction: null, model: data.model, modelDisplayName: data.model,
-    contextWindowTokens: 0, sessionKind: data.isSubagent ? 'background' : 'interactive', entrypoint: 'codex',
+    contextWindowTokens: data.contextWindowTokens ?? 0,
+    statuslineContextWindowSize: data.contextWindowSize,
+    statuslineUsedPct: data.contextWindowTokens != null && data.contextWindowSize > 0 ? data.contextWindowTokens / data.contextWindowSize * 100 : null,
+    sessionKind: data.isSubagent ? 'background' : 'interactive', entrypoint: 'codex',
     agentState: { group: state[0], state: state[1], label: state[2], context: 'Read-only Codex rollout. Runtime process and approval state are not observable from logs alone.' },
     pid: null, title: data.title, lastUserMessage: short(data.lastUser, 1000), lastUserMessageAt: data.lastUserAt,
     currentActivity: data.phase === 'unknown' ? `No recent event; last recorded: ${data.activity || 'turn started'}` : data.phase === 'completed' ? short(data.lastAssistant) || 'Turn finished; overall task completion is not inferred.' : data.activity || state[2],
