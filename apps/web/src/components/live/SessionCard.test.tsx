@@ -87,6 +87,12 @@ function renderCard(session: LiveSession) {
 }
 
 describe('live SessionCard', () => {
+  it('allows a 100-character last prompt while keeping the title limit at 50', () => {
+    const { container } = renderCard(createMockSession({ title: 'A'.repeat(80), lastUserMessage: 'B'.repeat(120) }))
+    expect(container.querySelector('.session-title')).toHaveTextContent(`${'A'.repeat(49)}…`)
+    expect(container.querySelector('.session-last-prompt')).toHaveTextContent(`${'B'.repeat(99)}…`)
+  })
+
   it('shows context usage beside the status dot using the reported percentage', () => {
     const { container } = renderCard(createMockSession({ statuslineUsedPct: 65, statuslineContextWindowSize: 200000, contextWindowTokens: 130000 }))
     const meter = screen.getByRole('meter', { name: 'Context usage: 65%' })

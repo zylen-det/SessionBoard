@@ -368,9 +368,9 @@ export function SessionCard({
   const showLastMsg = lastMsg && lastMsg !== title && !lastMsg.startsWith(title)
 
   const cardClassName = 'task-card group relative block rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 pb-7 hover:bg-zinc-50 dark:hover:bg-zinc-800/70 cursor-pointer transition-colors'
-  const preview = (value: string) => {
+  const preview = (value: string, limit = 50) => {
     const characters = Array.from(value)
-    return characters.length > 50 ? `${characters.slice(0, 49).join('')}…` : value
+    return characters.length > limit ? `${characters.slice(0, limit - 1).join('')}…` : value
   }
   const activityAt = lastPromptTime(session)
   const status = boardStatus(session)
@@ -412,7 +412,7 @@ export function SessionCard({
       {showLastMsg && (
         <p title={lastMsg} className="session-last-prompt text-md text-zinc-900 dark:text-zinc-100 mb-1">
           <span className="mr-1">→</span>
-          {preview(lastMsg)}
+          {preview(lastMsg, 100)}
         </p>
       )}
 
