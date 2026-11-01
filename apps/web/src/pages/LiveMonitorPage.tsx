@@ -63,7 +63,7 @@ export function LiveMonitorPage() {
   const [filters, filterActions] = useLiveSessionFilters(searchParams, setSearchParams)
 
   const [savedGroupBy, setSavedGroupBy] = useState<KanbanGroupBy>(() => {
-    try { return localStorage.getItem(KANBAN_GROUP_BY_STORAGE_KEY) === 'project-branch' ? 'project-branch' : 'none' } catch { return 'none' }
+    try { return localStorage.getItem(KANBAN_GROUP_BY_STORAGE_KEY) === 'none' ? 'none' : 'project-branch' } catch { return 'project-branch' }
   })
   const groupBy: KanbanGroupBy = searchParams.has('groupBy') ? searchParams.get('groupBy') === 'project-branch' ? 'project-branch' : 'none' : savedGroupBy
   const handleGroupByChange = useCallback((value: KanbanGroupBy) => {
