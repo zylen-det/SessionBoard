@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import './ViewportShimmer.css'
 
-/** Play two border sweeps each time an unresolved question enters the viewport. */
+/** Play two border sweeps each time a pending request enters the viewport. */
 export function useViewportShimmer<T extends HTMLElement>(enabled = true) {
   const ref = useRef<T>(null)
   const [inView, setInView] = useState(false)

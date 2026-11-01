@@ -63,7 +63,7 @@ export function InteractiveCardShell({
 }: InteractiveCardShellProps) {
   const colors = VARIANT_COLORS[variant]
   const isResolved = !!resolved
-  const shimmer = useViewportShimmer<HTMLDivElement>(variant === 'question' && !isResolved)
+  const shimmer = useViewportShimmer<HTMLDivElement>(!isResolved)
 
   return (
     <div
