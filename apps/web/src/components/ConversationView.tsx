@@ -43,6 +43,8 @@ import { EmptyState, ErrorState, Skeleton } from './LoadingStates'
 import { SearchInput } from './SearchInput'
 import { SessionMetricsBar } from './SessionMetricsBar'
 import { DisplayModeToggle } from './live/DisplayModeToggle'
+import { CodexQuestionCard } from './live/CodexQuestionCard'
+import { CodexRequestCard } from './live/CodexRequestCard'
 import { SessionDetailPanel } from './live/SessionDetailPanel'
 import { historyToPanelData } from './live/session-panel-data'
 
@@ -431,6 +433,7 @@ export function ConversationView() {
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Conversation thread + input bar */}
         <div className="flex-1 min-w-0 flex flex-col relative">
+          {sessionId && <div className="max-h-[45vh] overflow-y-auto px-4"><CodexRequestCard sessionId={sessionId} /><CodexQuestionCard sessionId={sessionId} /></div>}
           {/* Cmd+F find bar */}
           {findOpen && (
             <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-white/[0.06] px-4 py-2 flex-shrink-0">

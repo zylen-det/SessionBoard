@@ -12,6 +12,41 @@ const setup = () => { const runtime = new CodexRuntime('/unused'); runtime.conne
 const emit = (runtime, method, params) => runtime.handleNotification({ method, params: { threadId: 'thread-a', turnId: 'turn-a', ...params } })
 const activity = (runtime) => runtime.decorate(session).runtimeActivity
 
+test('native requests drive Need you and are scoped to their thread/turn and live connection', () => {
+  const runtime = setup()
+  const request = { id: 42, method: 'item/commandExecution/requestApproval', params: { threadId: 'thread-a', turnId: 'turn-a', itemId: 'tool', command: 'bun test' } }
+  runtime.handleServerRequest(request)
+  assert.equal(runtime.decorate(session).agentState.state, 'awaiting_approval')
+  assert.equal(runtime.decorate(session).pendingInteraction.variant, 'permission')
+  runtime.handleServerRequest({ ...request, id: 43, params: { ...request.params, turnId: 'old-turn' } })
+  assert.equal(runtime.interactions.requests.size, 1)
+  emit(runtime, 'serverRequest/resolved', { requestId: 42 })
+  assert.equal(runtime.interactions.requests.size, 0)
+  runtime.handleServerRequest({ ...request, method: 'item/tool/call' })
+  assert.equal(runtime.interactions.requests.size, 0)
+  runtime.handleServerRequest(request)
+  emit(runtime, 'item/completed', { item: { id: 'tool' } })
+  assert.equal(runtime.interactions.requests.size, 0)
+  runtime.handleServerRequest(request)
+  emit(runtime, 'turn/completed', { turn: { id: 'turn-a' } })
+  assert.equal(runtime.interactions.requests.size, 0)
+  assert.equal(runtime.decorate(session).agentState.state, 'idle')
+})
+
+test('recorded async questions survive active and idle daemon states, and clear on a live user prompt', () => {
+  const runtime = setup()
+  const waiting = { ...session, status: 'paused', pendingQuestion: { id: 'question', text: 'Continue?', requestedAt: 10 }, agentState: { group: 'needs_you', state: 'awaiting_input' } }
+  assert.equal(runtime.decorate(waiting).agentState.state, 'awaiting_input')
+  emit(runtime, 'turn/completed', { turn: { id: 'turn-a' } })
+  const snapshot = runtime.decorateSnapshot({ sessions: [waiting], recentlyClosed: [], summary: {} })
+  assert.equal(snapshot.sessions[0].agentState.state, 'awaiting_input')
+  assert.equal(snapshot.summary.needsYouCount, 1)
+  assert.equal(snapshot.sessions[0].runtimeActivity, null)
+  emit(runtime, 'turn/started', { turn: { id: 'turn-b' } })
+  emit(runtime, 'item/completed', { turnId: 'turn-b', item: { id: 'reply', type: 'userMessage' } })
+  assert.equal(runtime.decorate(waiting).agentState.group, 'autonomous')
+})
+
 test('observes tool, public reasoning summary and output lifecycle; finished items are never current', () => {
   const runtime = setup()
   emit(runtime, 'item/started', { item: { id: 'tool-a', type: 'commandExecution', command: 'bun test' } })
@@ -67,7 +102,7 @@ test('subscribes only to loaded threads, hydrates active tools, and reconnects w
   const socketPath = path.join(home, 'observer.sock')
   const server = createServer()
   const sockets = new WebSocketServer({ server })
-  let current, joins = 0
+  let current, joins = 0, collide = false
   const requests = []
   const runtime = new CodexRuntime(home, { socketPath, reconnectMs: 20, discoveryMs: 50 })
   const waitFor = async (predicate) => {
@@ -80,6 +115,7 @@ test('subscribes only to loaded threads, hydrates active tools, and reconnects w
       const request = JSON.parse(buffer)
       requests.push(request)
       if (request.id === undefined) return
+      if (collide && request.method === 'thread/read') socket.send(JSON.stringify({ id: request.id, method: 'item/commandExecution/requestApproval', params: { threadId: 'thread-a', turnId: 'turn-a', itemId: 'approval-tool', command: 'bun test' } }))
       const thread = { id: 'thread-a', status: { type: 'active', activeFlags: [] } }
       let result = {}
       if (request.method === 'thread/loaded/list') result = { data: ['thread-a'], nextCursor: null }
@@ -95,10 +131,17 @@ test('subscribes only to loaded threads, hydrates active tools, and reconnects w
     assert.equal(activity(runtime).detail, 'Bash · sleep 30')
     assert(requests.every(request => ['initialize', 'initialized', 'thread/loaded/list', 'thread/read', 'thread/resume'].includes(request.method)))
     assert.deepEqual(requests.find(request => request.method === 'thread/resume').params, { threadId: 'thread-a', excludeTurns: true, initialTurnsPage: { limit: 1, sortDirection: 'desc', itemsView: 'full' } })
+    collide = true
+    const read = await runtime.request('thread/read', { threadId: 'thread-a' })
+    assert.equal(read.thread.id, 'thread-a', 'A server request with the same id must not consume the pending client RPC')
+    const oldRequest = runtime.interactions.view('thread-a').requestId
+    collide = false
     const cleared = new Promise(resolve => { const previous = runtime.onChange; runtime.onChange = () => { previous(); if (!runtime.connected) resolve() } })
     current.terminate()
     await cleared
     assert.equal(activity(runtime), null)
+    assert.equal(runtime.interactions.view('thread-a'), null)
+    await assert.rejects(runtime.interactions.respond('thread-a', { requestId: oldRequest, action: 'accept' }), { status: 409 })
     await waitFor(() => joins >= 2 && activity(runtime)?.kind === 'tool')
     current.send(JSON.stringify({ method: 'item/started', params: { threadId: 'thread-a', turnId: 'turn-a', item: { id: 'reason', type: 'reasoning' } } }))
     await waitFor(() => activity(runtime)?.kind === 'reasoning')

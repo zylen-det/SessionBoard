@@ -63,8 +63,10 @@ export function createCodexServer({ home = process.env.CODEX_HOME || path.join(o
     if (!allowedHosts.has(req.headers.host) || (req.headers.origin && ![...allowedHosts].some(host => req.headers.origin === `http://${host}`)) || req.headers['sec-fetch-site'] === 'cross-site') return json(res, { error: 'Local same-origin access only' }, 403)
     try {
       const url = new URL(req.url, `http://${req.headers.host}`), pathname = decodeURIComponent(url.pathname)
-      if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, { error: 'Codex observer is read-only. Continue or approve work in your existing Codex client.' }, 405)
-      if (pathname === '/api/runtime') return json(res, { mode: 'codex', readOnly: true, source: 'local-rollouts', statusSource: runtime.connected ? 'app-server-events' : 'recorded-events', searchScope: 'indexed-excerpts' })
+      const answerRoute = req.method === 'POST' && /^\/api\/sessions\/(codex:[^/]+)\/question\/answer$/.test(pathname)
+      const interactRoute = req.method === 'POST' && /^\/api\/sessions\/(codex:[^/]+)\/interact$/.test(pathname)
+      if (req.method !== 'GET' && req.method !== 'HEAD' && !answerRoute && !interactRoute) return json(res, { error: 'Only explicit replies to pending Codex requests can be submitted. Other operations are read-only.' }, 405)
+      if (pathname === '/api/runtime') return json(res, { mode: 'codex', readOnly: true, questionReplies: true, requestReplies: true, source: 'local-rollouts', statusSource: runtime.connected ? 'app-server-events' : 'recorded-events', searchScope: 'indexed-excerpts' })
       await ready
       if (pathname === '/api/config') return json(res, { auth: false, sharing: false, version: 'Agent HUD · Codex observer', telemetry: 'disabled', posthogKey: null, anonymousId: null, features: { systemMonitor: false } })
       if (pathname === '/api/health') return json(res, { status: 'ok', provider: 'codex', sessions: store.all().length, unreadableFiles: store.errors?.length ?? 0 })
@@ -118,8 +120,30 @@ export function createCodexServer({ home = process.env.CODEX_HOME || path.join(o
       }
       const sessionRoute = pathname.match(/^\/api\/sessions\/(codex:[^/]+)(?:\/(.*))?$/)
       if (sessionRoute) {
+        if (answerRoute) await store.refresh()
         const [, id, suffix] = sessionRoute, item = await store.detail(id)
         if (!item) return json(res, { error: 'Codex session not found' }, 404)
+        if ((suffix === 'question/answer' && answerRoute) || (suffix === 'interact' && interactRoute)) {
+          if (req.headers['content-type']?.split(';')[0] !== 'application/json') return json(res, { error: 'Send the response as application/json.' }, 415)
+          const chunks = []
+          let bytes = 0
+          for await (const chunk of req) {
+            bytes += chunk.length
+            if (bytes > 32 * 1024) return json(res, { error: 'Response is too large.' }, 413)
+            chunks.push(chunk)
+          }
+          let payload
+          try { payload = JSON.parse(Buffer.concat(chunks).toString('utf8')) } catch { return json(res, { error: 'Invalid JSON answer.' }, 400) }
+          if (interactRoute) {
+            if (!runtime.connected) return json(res, { error: 'Codex disconnected. Reconnect to load current requests.' }, 503)
+            return json(res, await runtime.interactions.respond(item.rawId, payload))
+          }
+          return json(res, await runtime.answerQuestion(toLive(item), payload?.requestId, payload?.answers))
+        }
+        if (suffix === 'question') {
+          const live = runtime.decorate(toLive(item))
+          return json(res, live.pendingQuestion ? { ...live.pendingQuestion, canAnswer: runtime.canAnswer(live) } : null)
+        }
         const childRoute = suffix?.match(/^subagents\/([^/]+)\/messages$/)
         if (childRoute) {
           const child = await store.detail(`codex:${childRoute[1]}`)
@@ -139,7 +163,7 @@ export function createCodexServer({ home = process.env.CODEX_HOME || path.join(o
           return json(res, content ? [{ slug: item.rawId, variant: null, filename: 'Recorded Codex plan', content, sizeBytes: Buffer.byteLength(content), modifiedAt: item.lastAt }] : [])
         }
         if (suffix === 'hook-events') return json(res, { hookEvents: [] })
-        if (suffix === 'interaction') return json(res, null)
+        if (suffix === 'interaction') return json(res, runtime.connected ? runtime.interactions.view(item.rawId) : null)
       }
       if (pathname.startsWith('/api/')) return json(res, { error: 'This capability is not available from Codex rollout logs.' }, 404)
       const filename = path.resolve(dist, '.' + pathname)

@@ -20,7 +20,7 @@ import {
   Terminal,
   TreePine,
 } from 'lucide-react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useFullInteraction } from '../../hooks/use-full-interaction'
 import { buildSessionUrl } from '../../lib/url-utils'
 import { cleanPreviewText } from '../../utils/get-session-title'
@@ -32,6 +32,8 @@ import type { AgentState } from './types'
 import { boardStatus, GROUP_DEFAULTS, KNOWN_STATES } from './types'
 import { lastPromptTime } from './session-order'
 import { SessionContextRing } from './SessionContextRing'
+import { CodexQuestionCard } from './CodexQuestionCard'
+import { CodexRequestCard } from './CodexRequestCard'
 import { type LiveSession } from './use-live-sessions'
 
 // ─── StateBadge (exported — used by Harness, ListView, TerminalOverlay) ──
@@ -356,8 +358,9 @@ export function SessionCard({
   hideProjectBranch,
 }: SessionCardProps) {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const respond = useInteractionResponder(session.id, session.ownership)
-  const fullInteraction = useFullInteraction(session.id, session.pendingInteraction)
+  const fullInteraction = useFullInteraction(session.id, session.id.startsWith('codex:') ? null : session.pendingInteraction)
   const rawLastMessage = session.lastUserMessage || ''
   const rawTitle = session.title || ''
   const cleanedLastMessage = rawLastMessage ? cleanPreviewText(rawLastMessage) : ''
@@ -382,7 +385,8 @@ export function SessionCard({
   const runtimeActivity = running ? session.runtimeActivity : null
   const runtimeText = runtimeActivity?.kind === 'tool' ? `tool: ${runtimeActivity.detail}`
     : runtimeActivity?.kind === 'reasoning' ? `reasoning${runtimeActivity.detail ? `: ${runtimeActivity.detail}` : ''}`
-      : runtimeActivity?.kind === 'outputting' ? 'outputting' : 'running'
+      : runtimeActivity?.kind === 'outputting' ? 'outputting'
+        : runtimeActivity?.kind === 'unknown' ? 'proccessing' : 'running'
   const activity = session.status !== 'done' && session.currentActivity !== session.agentState.label ? session.currentActivity : ''
   const lastResponse = session.lastAssistantPreview?.trim()
 
@@ -394,6 +398,8 @@ export function SessionCard({
   const hasTeam = Boolean(session.teamName)
   const hasAgents = session.subAgents && session.subAgents.length > 0
   const hasDetails = hasLocation || hasFiles || hasTools || hasTeam || hasAgents
+  const hasInteraction = Boolean(session.pendingQuestion || session.pendingInteraction)
+  const sessionUrl = buildSessionUrl(session.id, searchParams)
 
   const cardContent = (
     <Tooltip.Provider delayDuration={200}>
@@ -405,7 +411,11 @@ export function SessionCard({
         <span role="img" aria-label={statusLabel} title={statusLabel} className={`session-status h-1.5 w-1.5 rounded-full ${statusDot}`} />
       </div>
       <div className="session-card-meta flex items-start justify-between gap-2 mb-1 text-xs text-zinc-500 dark:text-zinc-400">
-        <p title={title} className="session-title min-w-0 flex-1 text-sm font-medium text-zinc-900 dark:text-zinc-100">{preview(title)}</p>
+        <p title={title} className="session-title min-w-0 flex-1 text-sm font-medium text-zinc-900 dark:text-zinc-100">
+          {hasInteraction ? onClickOverride ? (
+            <button type="button" onClick={onClickOverride} className="text-left hover:underline">{preview(title)}</button>
+          ) : <Link to={sessionUrl} className="hover:underline">{preview(title)}</Link> : preview(title)}
+        </p>
         <time dateTime={new Date(activityAt * 1000).toISOString()} title={`Last prompt: ${new Date(activityAt * 1000).toLocaleString()}`} className="shrink-0 tabular-nums">{ago}</time>
       </div>
 
@@ -426,13 +436,23 @@ export function SessionCard({
       ) : !lastResponse && activity && <p className="mt-2 mb-3 text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2" title={activity}>{activity}</p>}
 
       {/* ── Pending interaction (permission, question, plan, elicitation) ── */}
+      {session.id.startsWith('codex:') && !session.pendingInteraction && !session.pendingQuestion && ['awaiting_input', 'awaiting_approval'].includes(session.agentState.state) && (
+        <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">Open the original Codex client to respond to this request.</p>
+      )}
+      {session.pendingQuestion && (
+        <div data-card-interaction><CodexQuestionCard sessionId={session.id} /></div>
+      )}
       {session.pendingInteraction && (
-        <SessionInteractionCard
-          sessionId={session.id}
-          meta={session.pendingInteraction}
-          fullInteraction={fullInteraction}
-          respond={respond}
-        />
+        <div data-card-interaction>
+          {session.id.startsWith('codex:') ? <CodexRequestCard sessionId={session.id} requestId={session.pendingInteraction.requestId} /> : (
+            <SessionInteractionCard
+              sessionId={session.id}
+              meta={session.pendingInteraction}
+              fullInteraction={fullInteraction}
+              respond={respond}
+            />
+          )}
+        </div>
       )}
 
       {/* ── Task progress ── */}
@@ -483,6 +503,19 @@ export function SessionCard({
         </div>
       )}
     </Tooltip.Provider>
+  )
+
+  // Forms need their own buttons and keyboard input. Keep the session opener
+  // separate so answering never activates the card's navigation.
+  if (hasInteraction) return (
+    <article className={cardClassName} aria-label={title} onClick={event => {
+      event.stopPropagation()
+      if ((event.target as HTMLElement).closest('[data-card-interaction], a, button, input, textarea, select')) return
+      if (onClickOverride) onClickOverride()
+      else navigate(sessionUrl)
+    }}>
+      {cardContent}
+    </article>
   )
 
   if (onClickOverride) {

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useViewportShimmer } from './useViewportShimmer'
 
 export type CardVariant = 'question' | 'permission' | 'plan' | 'elicitation'
 
@@ -24,7 +25,7 @@ const VARIANT_COLORS: Record<
     border: 'border-zinc-200 dark:border-zinc-700',
     bg: 'bg-zinc-50 dark:bg-zinc-900',
     headerBg: 'bg-zinc-50 dark:bg-zinc-900',
-    text: 'text-amber-600 dark:text-amber-400',
+    text: 'text-zinc-700 dark:text-zinc-300',
   },
   permission: {
     border: 'border-zinc-200 dark:border-zinc-700',
@@ -62,10 +63,12 @@ export function InteractiveCardShell({
 }: InteractiveCardShellProps) {
   const colors = VARIANT_COLORS[variant]
   const isResolved = !!resolved
+  const shimmer = useViewportShimmer<HTMLDivElement>(variant === 'question' && !isResolved)
 
   return (
     <div
-      className={`rounded-lg border ${colors.border} ${colors.bg} overflow-hidden ${
+      ref={shimmer.ref}
+      className={`${shimmer.className} rounded-lg border ${colors.border} ${colors.bg} overflow-hidden ${
         isResolved ? 'opacity-60 pointer-events-none' : ''
       }`}
     >

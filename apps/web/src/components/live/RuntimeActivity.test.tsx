@@ -13,6 +13,27 @@ afterEach(() => {
 })
 
 describe('runtime activity animation lifecycle', () => {
+  it('keeps the existing icon looping when activity becomes unknown', () => {
+    const { container, rerender } = render(<RuntimeActivity kind="tool" text="tool: Read" title="Read" />)
+    act(() => vi.advanceTimersByTime(720))
+    const glyph = container.querySelector('.runtime-glyph')
+    rerender(<RuntimeActivity kind="unknown" text="proccessing" title="proccessing" />)
+    expect(container).toHaveTextContent('proccessing')
+    expect(container.querySelector('.runtime-glyph')).toBe(glyph)
+    expect(glyph).toHaveAttribute('data-kind', 'tool')
+    expect(glyph).toHaveAttribute('data-phase', 'loop')
+    act(() => vi.advanceTimersByTime(10000))
+    expect(container.querySelector('.runtime-glyph')).toBe(glyph)
+    expect(glyph).toHaveAttribute('data-phase', 'loop')
+  })
+
+  it('shows the existing reasoning icon when no initial activity is known', () => {
+    const { container } = render(<RuntimeActivity kind="unknown" text="proccessing" title="proccessing" />)
+    act(() => vi.advanceTimersByTime(772))
+    expect(container.querySelector('.runtime-glyph')).toHaveAttribute('data-kind', 'reasoning')
+    expect(container.querySelector('.runtime-glyph')).toHaveAttribute('data-phase', 'loop')
+  })
+
   it('keeps the outgoing glyph and text until its exit finishes', () => {
     const { container, rerender } = render(<RuntimeActivity kind="tool" text="tool: Read" title="Read" />)
     const glyph = () => container.querySelector('.runtime-glyph')

@@ -5,6 +5,7 @@ import type { LiveSession as RecordedLiveSession } from '@claude-view/shared/typ
 
 export type LiveSession = RecordedLiveSession & {
   lastUserMessageAt?: number | null
+  pendingQuestion?: { id: string; text: string; requestedAt: number } | null
   runtimeActivity?: { kind: 'tool' | 'reasoning' | 'outputting' | 'unknown'; detail: string; updatedAt: number; source: 'app-server' } | null
 }
 import type { LiveSummary } from '../../store/live-session-store'

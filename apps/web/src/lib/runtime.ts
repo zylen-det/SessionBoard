@@ -1,6 +1,8 @@
 export interface RuntimeInfo {
   mode: 'demo' | 'codex'
   readOnly: boolean
+  questionReplies?: boolean
+  requestReplies?: boolean
 }
 
 // Established before React mounts. Demo installation is explicit and never
@@ -13,10 +15,10 @@ export async function initializeRuntime(): Promise<void> {
   if (response.ok && contentType.includes('application/json')) {
     const data = await response.json()
     if (data.mode !== 'codex' && data.mode !== 'demo') throw new Error('Unknown dashboard data source')
-    Object.assign(runtimeInfo, { mode: data.mode, readOnly: data.readOnly === true })
+    Object.assign(runtimeInfo, { mode: data.mode, readOnly: data.readOnly === true, questionReplies: data.questionReplies === true, requestReplies: data.requestReplies === true })
   } else if ((response.ok || response.status === 404) && contentType.includes('text/html')) {
     // A static demo host has no API and returns its index page (or HTML 404).
-    Object.assign(runtimeInfo, { mode: 'demo', readOnly: false })
+    Object.assign(runtimeInfo, { mode: 'demo', readOnly: false, questionReplies: false, requestReplies: false })
   } else {
     throw new Error(`Could not connect to the dashboard data source (${response.status})`)
   }

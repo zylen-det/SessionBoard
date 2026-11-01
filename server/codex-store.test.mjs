@@ -17,6 +17,108 @@ const user = row('response_item', { type: 'message', role: 'user', content: [{ t
 const assistant = row('response_item', { type: 'message', role: 'assistant', channel: 'final', content: [{ type: 'output_text', text: 'Checks passed.' }] })
 const lines = (rows) => rows.map((item) => JSON.stringify(item)).join('\n') + '\n'
 
+test('question reply API validates pending questions and confirms delivery to the existing thread', async () => {
+  const home = await mkdtemp(path.join(os.tmpdir(), 'agenthud-question-api-'))
+  let server
+  try {
+    await mkdir(path.join(home, 'sessions'))
+    await writeFile(path.join(home, 'sessions', 'a.jsonl'), lines([
+      meta(), started, user,
+      row('event_msg', { type: 'item_completed', item: { type: 'AgentMessage', id: 'ask-a', delivery: 'async', questions: [{ title: 'Continue?', options: ['Yes', 'No'] }, { title: 'Any notes?' }] } }), completed,
+    ]))
+    const app = createCodexServer({ home, store: new CodexStore(home, { now: () => now }) })
+    server = app.server
+    await app.ready
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
+    const url = `http://127.0.0.1:${server.address().port}/api/sessions/codex%3Athread-a/question`
+    const submit = (body, headers = {}) => fetch(url + '/answer', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) })
+    assert.equal((await (await fetch(url)).json()).canAnswer, false)
+    assert.equal((await submit({ requestId: 'ask-a', answers: ['Yes', '你好'] })).status, 503)
+    app.runtime.connected = true
+    const entry = app.runtime.entry('thread-a')
+    entry.subscribed = true
+    assert.equal((await (await fetch(url)).json()).questions.length, 2)
+    assert.equal((await (await fetch(url)).json()).canAnswer, true)
+    assert.equal((await submit({ requestId: 'stale', answers: ['Yes', 'notes'] })).status, 409)
+    assert.equal((await submit({ requestId: 'ask-a', answers: ['Yes', ''] })).status, 400)
+    assert.equal((await submit({ requestId: 'ask-a', answers: ['Yes'] })).status, 400)
+    assert.equal((await submit({ requestId: 'ask-a', answers: ['Yes', 'notes'] }, { Origin: 'https://other.example' })).status, 403)
+    app.runtime.request = async () => { throw new Error('offline') }
+    assert.equal((await submit({ requestId: 'ask-a', answers: ['Yes', 'notes'] })).status, 502)
+    assert.equal((await (await fetch(url)).json()).id, 'ask-a')
+    const calls = []
+    app.runtime.request = async (method, params) => { calls.push({ method, params }); return { turn: { id: 'reply-turn' } } }
+    const response = await submit({ requestId: 'ask-a', answers: ['Yes', '你好'] })
+    assert.equal(response.status, 200)
+    assert.equal((await response.json()).turnId, 'reply-turn')
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0].method, 'turn/start')
+    assert.deepEqual(Object.keys(calls[0].params).sort(), ['input', 'threadId'])
+    assert.equal(calls[0].params.threadId, 'thread-a')
+    const text = calls[0].params.input[0].text
+    const replies = JSON.parse(text.split('\n')[1])
+    assert.deepEqual(replies[1], { question: 'Any notes?', answer: '你好', questionItemId: JSON.stringify(['request_user_input_async', 'ask-a', 1]) })
+    assert.equal(await (await fetch(url)).json(), null)
+    assert.equal((await submit({ requestId: 'ask-a', answers: ['Yes', 'notes'] })).status, 409)
+    const interactionUrl = url.slice(0, -'/question'.length) + '/interact'
+    app.runtime.handleServerRequest({ id: 'approval-1', method: 'item/commandExecution/requestApproval', params: { threadId: 'thread-a', command: 'bun test' } })
+    const pending = await (await fetch(interactionUrl.replace('/interact', '/interaction'))).json()
+    const decide = (headers = {}, requestId = pending.requestId) => fetch(interactionUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ requestId, action: 'accept' }) })
+    assert.equal((await decide({ Origin: 'https://other.example' })).status, 403)
+    assert.equal((await decide({}, 'not-a-pending-request')).status, 409)
+    const nativeReplies = []
+    app.runtime.interactions.send = async (id, result) => {
+      nativeReplies.push({ id, result })
+      queueMicrotask(() => app.runtime.interactions.resolved('thread-a', id))
+    }
+    const approved = await decide()
+    assert.equal(approved.status, 200)
+    assert.deepEqual(await approved.json(), { ok: true })
+    assert.deepEqual(nativeReplies, [{ id: 'approval-1', result: { decision: 'accept' } }])
+    assert.equal((await decide()).status, 409)
+    assert.equal(calls.length, 1, 'Approval must not start another turn')
+  } finally {
+    if (server) await server.stop()
+    await rm(home, { recursive: true, force: true })
+  }
+})
+
+test('async questions remain Need you after tool acceptance and turn completion until the next user prompt', () => {
+  const question = row('event_msg', { type: 'item_completed', item: {
+    type: 'AgentMessage', id: 'question-a', delivery: 'async', phase: 'final_answer',
+    content: [{ type: 'Text', text: 'Does the prompt appear?' }],
+    questions: [{ title: 'Does the prompt appear?', options: ['Yes', 'No'] }],
+  } })
+  const records = [meta(), started, user, question, assistant, completed]
+  const parsed = parseRollout(records, { now: now + 600 })
+  assert.equal(parsed.phase, 'waiting')
+  assert.equal(toLive(parsed).agentState.state, 'awaiting_input')
+  assert.equal(toLive(parsed).status, 'paused')
+  assert.equal(toLive(parsed).currentActivity, 'Does the prompt appear?')
+  const store = new CodexStore('/unused', { now: () => now + 600 })
+  store.cache.set('fixture', parsed)
+  assert.equal(store.snapshot().sessions.length, 1)
+  assert.equal(store.snapshot().summary.needsYouCount, 1)
+  assert.equal(store.snapshot().recentlyClosed.length, 0)
+  const nextUser = row('event_msg', { type: 'item_completed', item: { type: 'UserMessage', id: 'reply', content: [{ type: 'text', text: 'Yes' }] } })
+  const resumed = parseRollout([...records, started, nextUser], { now })
+  assert.equal(resumed.pendingQuestion, null)
+  assert.equal(resumed.phase, 'working')
+  assert.equal(parseRollout([...records, started, nextUser, completed], { now }).phase, 'completed')
+  assert.equal(parseRollout([...records, { type: 'agenthud_gap' }], { now }).pendingQuestion, null)
+})
+
+test('legacy async question tools require explicit acceptance, independently of native command records', () => {
+  const call = row('response_item', { type: 'function_call', name: 'functions.request_user_input_async', call_id: 'question', arguments: JSON.stringify({ questions: [{ title: 'Continue?' }] }) })
+  const output = (accepted) => row('response_item', { type: 'function_call_output', call_id: 'question', output: JSON.stringify({ accepted }) })
+  const command = row('event_msg', { type: 'item_completed', item: { type: 'CommandExecution', id: 'cmd', command: 'true', exit_code: 0 } })
+  const records = [meta(), started, user, command, call]
+  assert.equal(parseRollout(records, { now }).phase, 'working')
+  assert.equal(parseRollout([...records, output(false), completed], { now }).phase, 'completed')
+  assert.equal(parseRollout([...records, output(true), completed], { now }).phase, 'waiting')
+  assert.equal(parseRollout([...records, output(true), completed, started, row('response_item', { ...user.payload, id: 'reply' })], { now }).phase, 'working')
+})
+
 test('context usage follows the latest request instead of cumulative session tokens', () => {
   const usage = (used, limit = 200000) => row('event_msg', { type: 'token_count', info: {
     total_token_usage: { input_tokens: 900000, total_tokens: 1000000 },

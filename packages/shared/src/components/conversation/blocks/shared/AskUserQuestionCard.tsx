@@ -126,7 +126,7 @@ export function AskUserQuestionCard({
           <button
             type="button"
             onClick={handleSubmit}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-amber-600 rounded-md hover:bg-amber-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-zinc-800 dark:bg-zinc-200 dark:text-zinc-900 rounded-md hover:bg-zinc-700 dark:hover:bg-zinc-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/50"
           >
             <Send className="w-3 h-3" />
             Submit
@@ -138,7 +138,7 @@ export function AskUserQuestionCard({
         {questions.map((q, qi) => (
           <div key={q.question}>
             {q.header && (
-              <div className="text-xs font-mono text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-0.5">
+              <div className="text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wide mb-0.5">
                 {q.header}
               </div>
             )}
@@ -160,17 +160,17 @@ export function AskUserQuestionCard({
                       onClick={() =>
                         q.multiSelect ? handleMultiToggle(qi, oi) : handleSingleSelect(qi, oi)
                       }
-                      className={`w-full flex items-start gap-2 px-2 py-1.5 rounded text-left border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 ${
+                      className={`w-full flex items-start gap-2 px-2 py-1.5 rounded text-left border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/50 ${
                         isSelected
-                          ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-500/40'
-                          : 'bg-white/50 dark:bg-gray-800/30 border-gray-200/50 dark:border-gray-700/30 hover:border-amber-300/50 dark:hover:border-amber-500/20'
+                          ? 'bg-zinc-200 dark:bg-zinc-700 border-zinc-500 dark:border-zinc-400'
+                          : 'bg-white/50 dark:bg-gray-800/30 border-gray-200/50 dark:border-gray-700/30 hover:border-zinc-500 dark:hover:border-zinc-500'
                       }`}
                     >
                       {q.multiSelect ? (
                         <CheckCircle2
                           className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${
                             isSelected
-                              ? 'text-amber-500 dark:text-amber-400'
+                              ? 'text-zinc-700 dark:text-zinc-200'
                               : 'text-gray-400 dark:text-gray-500'
                           }`}
                         />
@@ -178,7 +178,7 @@ export function AskUserQuestionCard({
                         <Circle
                           className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${
                             isSelected
-                              ? 'text-amber-500 dark:text-amber-400'
+                              ? 'text-zinc-700 dark:text-zinc-200'
                               : 'text-gray-400 dark:text-gray-500'
                           }`}
                           {...(isSelected ? { fill: 'currentColor' } : {})}
@@ -206,16 +206,16 @@ export function AskUserQuestionCard({
                 <button
                   type="button"
                   onClick={() => handleOtherToggle(qi, !!q.multiSelect)}
-                  className={`w-full flex items-start gap-2 px-2 py-1.5 rounded text-left border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 ${
+                  className={`w-full flex items-start gap-2 px-2 py-1.5 rounded text-left border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/50 ${
                     otherSelected[qi]
-                      ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-500/40'
-                      : 'bg-white/50 dark:bg-gray-800/30 border-gray-200/50 dark:border-gray-700/30 hover:border-amber-300/50 dark:hover:border-amber-500/20'
+                      ? 'bg-zinc-200 dark:bg-zinc-700 border-zinc-500 dark:border-zinc-400'
+                      : 'bg-white/50 dark:bg-gray-800/30 border-gray-200/50 dark:border-gray-700/30 hover:border-zinc-500 dark:hover:border-zinc-500'
                   }`}
                 >
                   <Circle
                     className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${
                       otherSelected[qi]
-                        ? 'text-amber-500 dark:text-amber-400'
+                        ? 'text-zinc-700 dark:text-zinc-200'
                         : 'text-gray-400 dark:text-gray-500'
                     }`}
                     {...(otherSelected[qi] ? { fill: 'currentColor' } : {})}
@@ -231,7 +231,7 @@ export function AskUserQuestionCard({
                     value={otherTexts[qi] ?? ''}
                     onChange={(e) => handleOtherText(qi, e.target.value)}
                     placeholder="Type your answer..."
-                    className="w-full text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                    className="w-full text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-zinc-500/50"
                   />
                 )}
 

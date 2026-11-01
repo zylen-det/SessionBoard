@@ -6,7 +6,7 @@
 
 前端源自 [tombelieber/claude-view](https://github.com/tombelieber/claude-view/tree/d3e4ad89f3847d702f33381735e97dc397fb196d)（上游版本 0.46.2，commit `d3e4ad8`），保留上游 MIT 授權與共用套件名稱。AgentHUD 版本獨立管理。
 
-## Codex 唯讀接入
+## Codex 接入
 
 ```sh
 bun install
@@ -18,12 +18,12 @@ bun start
 
 局域網存取可使用 `npm run start -- --host`（監聽 `0.0.0.0`），再由其他裝置開啟 `http://這台電腦的局域網IP:4174`。也可用 `npm run start -- --host 192.168.0.160` 或 `--host=192.168.0.160` 僅監聽指定介面。不帶參數時預設為 `127.0.0.1`；仍支援 `HOST` 環境變數，`--host` 優先於環境變數。
 
-- 自動發現 `$CODEX_HOME/sessions`，預設為 `~/.codex/sessions`；也讀取 `archived_sessions` 與 `session_index.jsonl`（存在時）。不修改 Codex 設定、Session 或批准權限，不啟動新回合。存在共享 daemon 時會加入其已載入的 Session 訂閱活動，不傳入設定覆寫。
+- 自動發現 `$CODEX_HOME/sessions`，預設為 `~/.codex/sessions`；也讀取 `archived_sessions` 與 `session_index.jsonl`（存在時）。背景觀察不修改 Codex 設定或啟動新回合。存在共享 daemon 時會加入其已載入的 Session 訂閱活動，不傳入設定覆寫；只有使用者明確提交的答案或批准決定會送回原 Session。
 - 同一個既有前端由本機 Node HTTP/SSE 服務提供資料，每兩秒檢查紀錄變化；對話、任務與計畫每三秒更新。無須新增 API key。
 - 支援舊版 `response_item`／`event_msg` 與本機 Codex 0.166.0 的 `item_completed` 格式；讀取使用者／助手訊息、工具結果、`update_plan` 計畫、已記錄的檔案修改與子 Agent 關係。系統指令及原始 reasoning 不顯示；即時狀態只使用 reasoning 的公開摘要。
 - Board 顯示最近七天，最多 100 個未結束紀錄與 20 個已結束回合；完整主 Session 列表保留在 Sessions。子 Agent 不重複列為獨立主任務。
 - 歷史總覽只讀首 128 KiB 與尾 256 KiB，避免反覆讀完整個歷史目錄。最近 24 小時修改的紀錄與所選詳情會完整解析，單檔上限 64 MiB。詳情快取最多四份。
-- Live API 只允許監聽介面位址的同源讀取，拒絕所有修改方法。紀錄讀取失敗不會切回模擬資料。
+- Live API 只允許監聽介面位址的同源存取。寫入入口限使用者明確提交的非同步答案與已接收的即時請求回覆；其他修改方法一律拒絕。紀錄讀取失敗不會切回模擬資料。
 
 ### 能力與界線
 
@@ -35,13 +35,20 @@ bun start
 | Running 卡片即時活動 | 自動連線既有共享 daemon 的 Unix WebSocket，顯示 `tool: …`、`reasoning: 公開摘要`、`outputting`；無明確活動時顯示 `running` |
 | Working／Idle／Interrupted／Error | 已載入 Session 優先使用 daemon runtime；其他使用紀錄事件，超過三分鐘沒有事件時標為 State unverified |
 | Finished turns | 僅代表收到 `task_complete`，不代表整個任務完成或 CLI 已退出 |
-| Waiting for input | 只有明確記錄請求事件才顯示；不能從未結束的工具呼叫推斷批准等待 |
+| Waiting for input | 依明確請求事件、daemon 等待旗標或已接受的非同步提問顯示；非同步提問跨回合結束保留 Need you，收到下一則使用者訊息後清除；不能從未結束的工具呼叫推斷批准等待 |
 | 搜尋 | 標題、專案與已索引的訊息片段；不是整份歷史的全文搜尋 |
 | 檔案變更 | 支援已記錄的 native FileChange 檔名；未重建完整版本 diff／Git commit 關聯 |
-| 回覆、批准、控制 Agent | 未接入；繼續在原本的 Codex CLI／編輯器操作 |
+| 問題與回覆 | 看板卡片直接顯示完整問題、選項與文字欄位；Session 對話頁也可回答。連線到既有 daemon Session 時可送出答案，等待 Codex 確認後清除；亦可繼續在原本的 Codex 客戶端回答 |
+| Command／File change 批准 | 已接入即時請求，可允許一次、允許本 Session、拒絕或取消；顯示命令、網路目標或已接收的檔案修改內容 |
+| 額外網路／檔案權限 | 可授予原請求的權限（本回合或本 Session），或拒絕；不接受前端自行擴充的權限 |
+| 阻塞式問題／Plan 確認 | 透過實際 `requestUserInput` 顯示問題、選項及密碼欄位，回覆原工具請求；不另造 Plan 批准狀態 |
+| MCP 表單／URL 確認 | 支援標準文字、數字、布林與列舉欄位，以及使用者手動開啟的 URL 確認；未知 schema 請回原客戶端操作 |
+| 其他 Agent 控制 | 尚未接入；繼續在原本的 Codex CLI／編輯器操作 |
 | AI 摘要／離開期間差異 | 未新增；目前只呈現紀錄本身已有的內容 |
 
-本機 Codex 0.166.0 已實測可透過 `~/.codex/app-server-control/app-server-control.sock` 加入共享 daemon 的既有 Session。只使用初始化、列出／讀取已載入 thread 與無覆寫的 `thread/resume` 訂閱事件，不送出 prompt、工具回覆或批准決定。可用 `AGENTHUD_CODEX_SOCKET` 指定另一個 Unix socket；未連線時自動重連並繼續讀取紀錄，不把已完成的紀錄冒充即時活動。以 `--no-daemon` 啟動的獨立 CLI 不會被這個共享 daemon 監聽，未修改全域 Hooks。
+本機 Codex 0.166.0 已實測可透過 `~/.codex/app-server-control/app-server-control.sock` 加入共享 daemon 的既有 Session。背景觀察只使用初始化、列出／讀取已載入 thread 與無覆寫的 `thread/resume` 訂閱事件。只有按下 Send answer 才以無設定覆寫的 `turn/start` 將答案送回同一 thread（工作中追加輸入，閒置時開始新回合）。問題回覆 envelope 採用本機 0.166.0 原生客戶端紀錄格式，並非跨版本穩定合約；升級時須重新驗證。可用 `AGENTHUD_CODEX_SOCKET` 指定另一個 Unix socket；未連線時自動重連並繼續讀取紀錄。以 `--no-daemon` 啟動的獨立 CLI 不會被這個共享 daemon 監聽，需在原本的客戶端回答。
+
+即時批准、阻塞式問題與 MCP 確認只處理此 WebSocket 實際收到的 server request，回覆原 JSON-RPC request ID，不另開回合；收到 `serverRequest/resolved` 後才確認完成。原客戶端作答也會同步清除。斷線、回合結束或項目完成會作廢舊請求；逾時未確認時保留等待狀態並阻止重複送出。若只有等待旗標、未收到請求內容，仍需在原客戶端操作。協定依本機 0.166.0 生成型別驗證，HTTP／WebSocket／瀏覽器測試使用模擬 daemon，不會執行真實批准命令。
 
 官方參考：[App Server](https://learn.chatgpt.com/docs/app-server)、[Hooks](https://learn.chatgpt.com/docs/hooks)。JSONL 是本機版本實測的儲存格式，不當作穩定的官方 API 合約；版本改動需重新驗證。
 

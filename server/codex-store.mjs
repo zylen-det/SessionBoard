@@ -34,19 +34,21 @@ export function parseRollout(records, { filePath = '', mtime = 0, size = 0, titl
     cwd: meta.cwd ?? null, branch: meta.git?.branch ?? null, model: null,
     firstAt: seconds(meta.timestamp) || seconds(records[0]?.timestamp) || mtime,
     lastAt: 0, phase: 'idle', turnStartedAt: null, turnEndedAt: null,
-    firstUser: '', lastUser: '', lastUserAt: null, lastAssistant: '', activity: '', plan: [], planText: '',
+    firstUser: '', lastUser: '', lastUserAt: null, lastAssistant: '', activity: '', plan: [], planText: '', pendingQuestion: null,
     blocks: [], filesEdited: new Set(), toolCount: 0, promptCount: 0,
     contextWindowTokens: null, contextWindowSize: null,
     tokens: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheCreationTokens: 0, cacheCreation5mTokens: 0, cacheCreation1hrTokens: 0, totalTokens: 0 },
   }
   const seen = new Set()
   const calls = new Map()
+  const questionCalls = new Map()
   function addMessage(role, text, timestamp, itemId) {
     if (!text || (role === 'user' && !isUserText(text))) return
     const key = itemId ?? hash(`${role}:${timestamp}:${text}`)
     if (seen.has(key)) return
     seen.add(key)
     if (role === 'user') {
+      data.pendingQuestion = null
       data.firstUser ||= text; data.lastUser = text; data.lastUserAt = timestamp; data.promptCount++
       data.blocks.push({ type: 'user', id: `${id}:${key}`, text, timestamp, status: 'sent' })
     } else {
@@ -70,7 +72,7 @@ export function parseRollout(records, { filePath = '', mtime = 0, size = 0, titl
     if (row.type === 'agenthud_gap') {
       // A bounded preview omitted the middle of the rollout. Earlier terminal
       // markers cannot establish the state of a later, unseen turn.
-      data.phase = 'unknown'; data.turnStartedAt = null; data.turnEndedAt = null; data.plan = []; data.planText = ''
+      data.phase = 'unknown'; data.turnStartedAt = null; data.turnEndedAt = null; data.plan = []; data.planText = ''; data.pendingQuestion = null; questionCalls.clear()
       continue
     }
     const p = row.payload
@@ -98,6 +100,9 @@ export function parseRollout(records, { filePath = '', mtime = 0, size = 0, titl
         const item = p.item ?? {}, kind = item.type
         if (kind === 'UserMessage') addMessage('user', textOf(item.content), timestamp, item.id)
         if (kind === 'AgentMessage' && !['analysis', 'Analysis', 'reasoning', 'Reasoning'].includes(item.phase)) addMessage('assistant', textOf(item.content), timestamp, item.id)
+        if (kind === 'AgentMessage' && item.delivery === 'async' && item.questions?.length) {
+          data.pendingQuestion = { id: item.id, text: short(item.questions[0].title ?? item.questions[0].question), questions: item.questions, requestedAt: timestamp }
+        }
         if (kind === 'CommandExecution') addTool(item.id, 'Bash', { command: Array.isArray(item.command) ? item.command.join(' ') : item.command ?? '', cwd: item.cwd }, item.aggregated_output, timestamp, 'complete', item.exit_code != null && item.exit_code !== 0)
         if (kind === 'FileChange') {
           const changes = item.changes ?? []
@@ -114,11 +119,19 @@ export function parseRollout(records, { filePath = '', mtime = 0, size = 0, titl
     if (p.type === 'message' && !nativeMessages && ['user', 'assistant'].includes(p.role) && p.channel !== 'analysis') addMessage(p.role, textOf(p.content), timestamp, p.id)
     if (p.type === 'function_call' || p.type === 'custom_tool_call') {
       const args = json(p.arguments ?? p.input)
+      if (p.name?.split('.').at(-1) === 'request_user_input_async' && args.questions?.length) {
+        questionCalls.set(p.call_id ?? p.id, { id: p.call_id ?? p.id, text: short(args.questions[0].title ?? args.questions[0].question), questions: args.questions, requestedAt: timestamp })
+      }
       if (p.name?.endsWith('update_plan')) applyPlan(args)
       if (!nativeTools && !['update_plan', 'exec'].includes(p.name)) {
         const callId = p.call_id ?? p.id
         calls.set(callId, { name: p.name, input: typeof args === 'object' ? args : { input: args }, timestamp })
       }
+    }
+    if (['function_call_output', 'custom_tool_call_output'].includes(p.type) && questionCalls.has(p.call_id)) {
+      // Async acceptance completes the tool, but leaves a question for the user.
+      if (json(p.output).accepted === true) data.pendingQuestion = questionCalls.get(p.call_id)
+      questionCalls.delete(p.call_id)
     }
     if (!nativeTools && ['function_call_output', 'custom_tool_call_output'].includes(p.type) && calls.has(p.call_id)) {
       const call = calls.get(p.call_id)
@@ -128,6 +141,7 @@ export function parseRollout(records, { filePath = '', mtime = 0, size = 0, titl
   }
   for (const [callId, call] of calls) addTool(callId, call.name, call.input, undefined, call.timestamp, 'running')
   data.lastAt ||= mtime || data.firstAt
+  if (data.pendingQuestion) { data.phase = 'waiting'; data.activity = data.pendingQuestion.text || 'Input requested in Codex' }
   if (data.phase === 'working' && now - data.lastAt > 180) data.phase = 'unknown'
   data.title = short(title || data.firstUser.split('\n').find((line) => line.trim()) || `Codex session ${id.slice(0, 8)}`, 180)
   const spawn = meta.source?.subagent?.thread_spawn
@@ -150,7 +164,7 @@ export function toLive(data) {
   return {
     id: data.id, status: data.phase === 'working' ? 'working' : data.phase === 'completed' ? 'done' : 'paused',
     startedAt: data.firstAt, closedAt: data.phase === 'completed' ? data.turnEndedAt : null,
-    control: null, ownership: null, pendingInteraction: null, model: data.model, modelDisplayName: data.model,
+    control: null, ownership: null, pendingInteraction: null, pendingQuestion: data.pendingQuestion, model: data.model, modelDisplayName: data.model,
     contextWindowTokens: data.contextWindowTokens ?? 0,
     statuslineContextWindowSize: data.contextWindowSize,
     statuslineUsedPct: data.contextWindowTokens != null && data.contextWindowSize > 0 ? data.contextWindowTokens / data.contextWindowSize * 100 : null,

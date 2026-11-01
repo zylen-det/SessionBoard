@@ -136,7 +136,7 @@ describe('SessionCard status display', () => {
       runtimeActivity,
     }))
     expect(container.querySelector('.session-last-response')).toHaveTextContent('I found the issue and am checking the fix.')
-    expect(container.querySelector('.session-runtime-activity')).toHaveTextContent('running')
+    expect(container.querySelector('.session-runtime-activity')).toHaveTextContent(runtimeActivity?.kind === 'unknown' ? 'proccessing' : 'running')
   })
 
   it('shows the last response alongside a live tool activity', () => {

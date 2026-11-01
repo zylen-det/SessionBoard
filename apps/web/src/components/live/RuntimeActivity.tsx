@@ -89,7 +89,11 @@ function ActivityText({ kind, text }: { kind: ActivityKind; text: string }) {
 
 type Activity = { kind: ActivityKind; text: string; title: string }
 
-export function RuntimeActivity(activity: Activity) {
+export function RuntimeActivity(requestedActivity: Activity) {
+  const lastGlyphKind = useRef<GlyphKind>('reasoning')
+  if (requestedActivity.kind !== 'unknown') lastGlyphKind.current = requestedActivity.kind
+  // Gaps between live items change the text, while the existing glyph keeps looping.
+  const activity = { ...requestedActivity, kind: lastGlyphKind.current }
   const [shown, setShown] = useState(activity)
   const [phase, setPhase] = useState<Phase>('enter')
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false)
@@ -107,7 +111,7 @@ export function RuntimeActivity(activity: Activity) {
 
   useLayoutEffect(() => {
     latest.current = activity
-    if (reducedMotion || shown.kind === 'unknown') {
+    if (reducedMotion) {
       setShown(current => current.kind === activity.kind && current.text === activity.text && current.title === activity.title ? current : activity)
       setPhase(reducedMotion ? 'loop' : 'enter')
     } else if (shown.kind === activity.kind && phase !== 'exit') {
@@ -126,7 +130,7 @@ export function RuntimeActivity(activity: Activity) {
   }, [activity.kind, activity.text, activity.title, shown.kind, shown.text, shown.title, phase, reducedMotion])
 
   useEffect(() => {
-    if (reducedMotion || shown.kind === 'unknown' || phase === 'loop') return
+    if (reducedMotion || phase === 'loop') return
     const timing = TIMING[shown.kind]
     const timer = window.setTimeout(() => {
       if (phase === 'enter') setPhase('loop')
@@ -142,7 +146,7 @@ export function RuntimeActivity(activity: Activity) {
 
   return (
     <div className="session-runtime-activity mt-2 mb-3 flex items-start gap-1.5 text-xs text-zinc-500 dark:text-zinc-400" title={shown.title}>
-      {shown.kind !== 'unknown' && <ActivityGlyph key={shown.kind} kind={shown.kind} phase={phase} glyphRef={glyphRef} />}
+      <ActivityGlyph key={shown.kind} kind={shown.kind} phase={phase} glyphRef={glyphRef} />
       <ActivityText kind={shown.kind} text={shown.text} />
     </div>
   )

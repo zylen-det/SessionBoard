@@ -1,0 +1,40 @@
+.viewport-shimmer {
+  position: relative;
+  --question-shine: rgb(113 113 122 / 85%);
+}
+
+.dark .viewport-shimmer {
+  --question-shine: rgb(244 244 245 / 90%);
+}
+
+/* Keep the shine inside clipped card shells and above their header backgrounds. */
+.viewport-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 40%, var(--question-shine) 50%, transparent 60%);
+  background-size: 250% 100%;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+}
+
+.viewport-shimmer--visible::after {
+  animation: question-border-shine 1.1s ease-in-out 2;
+}
+
+@keyframes question-border-shine {
+  0% { background-position: 150% 0; opacity: 0; }
+  15%, 85% { opacity: 1; }
+  100% { background-position: -50% 0; opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viewport-shimmer--visible::after {
+    animation: none;
+  }
+}
