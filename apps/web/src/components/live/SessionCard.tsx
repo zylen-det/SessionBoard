@@ -406,7 +406,7 @@ export function SessionCard({
 
       {/* ── Last user message ── */}
       {showLastMsg && (
-        <p title={lastMsg} className={`session-last-prompt text-xs ${TXT.label} mb-1`}>
+        <p title={lastMsg} className="session-last-prompt text-md text-zinc-900 dark:text-zinc-100 mb-1">
           <span className="mr-1">→</span>
           {preview(lastMsg)}
         </p>

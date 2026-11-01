@@ -631,7 +631,7 @@ export function SessionDetailPanel({
                 <span className="text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide">
                   Last Prompt
                 </span>
-                <p className="text-xs text-gray-700 dark:text-gray-300 mt-1.5 line-clamp-3">
+                <p className="text-xl text-zinc-900 dark:text-zinc-100 mt-1.5 line-clamp-3">
                   {cleanPreviewText(data.lastUserMessage)}
                 </p>
               </div>
