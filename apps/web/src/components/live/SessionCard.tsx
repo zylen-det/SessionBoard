@@ -384,6 +384,7 @@ export function SessionCard({
     : runtimeActivity?.kind === 'reasoning' ? `reasoning${runtimeActivity.detail ? `: ${runtimeActivity.detail}` : ''}`
       : runtimeActivity?.kind === 'outputting' ? 'outputting' : 'running'
   const activity = session.status !== 'done' && session.currentActivity !== session.agentState.label ? session.currentActivity : ''
+  const lastResponse = session.lastAssistantPreview?.trim()
 
   const files = session.userFiles ?? []
   const tools = session.toolsUsed ?? []
@@ -416,9 +417,13 @@ export function SessionCard({
         </p>
       )}
 
+      {lastResponse && (
+        <p className="session-last-response mt-2 mb-3 text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2" title={lastResponse}>{lastResponse}</p>
+      )}
+
       {running ? (
         <RuntimeActivity kind={runtimeActivity?.kind ?? 'unknown'} text={runtimeText} title={runtimeActivity && runtimeActivity.kind !== 'unknown' ? runtimeText : 'Waiting for a live activity event from the existing Codex session'} />
-      ) : activity && <p className="mt-2 mb-3 text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2" title={activity}>{activity}</p>}
+      ) : !lastResponse && activity && <p className="mt-2 mb-3 text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2" title={activity}>{activity}</p>}
 
       {/* ── Pending interaction (permission, question, plan, elicitation) ── */}
       {session.pendingInteraction && (

@@ -128,6 +128,38 @@ describe('live SessionCard', () => {
 })
 
 describe('SessionCard status display', () => {
+  it.each([null, { kind: 'unknown' as const, detail: '', updatedAt: 1_700_000_120, source: 'app-server' as const }])('keeps the last response visible when live activity is unavailable (%j)', (runtimeActivity) => {
+    const { container } = renderCard(createMockSession({
+      status: 'working',
+      agentState: { state: 'acting', group: 'autonomous', label: 'Running', context: null },
+      lastAssistantPreview: 'I found the issue and am checking the fix.',
+      runtimeActivity,
+    }))
+    expect(container.querySelector('.session-last-response')).toHaveTextContent('I found the issue and am checking the fix.')
+    expect(container.querySelector('.session-runtime-activity')).toHaveTextContent('running')
+  })
+
+  it('shows the last response alongside a live tool activity', () => {
+    const { container } = renderCard(createMockSession({
+      status: 'working',
+      agentState: { state: 'acting', group: 'autonomous', label: 'Running', context: null },
+      lastAssistantPreview: 'I am verifying the fix.',
+      runtimeActivity: { kind: 'tool', detail: 'Bash · bun test', updatedAt: 1_700_000_120, source: 'app-server' },
+    }))
+    expect(container.querySelector('.session-last-response')).toHaveTextContent('I am verifying the fix.')
+    expect(container.querySelector('.session-runtime-activity')).toHaveTextContent('tool: Bash · bun test')
+  })
+
+  it('shows a completed response once', () => {
+    const { container } = renderCard(createMockSession({
+      status: 'done',
+      lastAssistantPreview: 'The fix is ready.',
+      currentActivity: 'The fix is ready.',
+    }))
+    expect(screen.getAllByText('The fix is ready.')).toHaveLength(1)
+    expect(container.querySelector('.session-runtime-activity')).not.toBeInTheDocument()
+  })
+
   it('shows status as a dot without visible text', () => {
     const session = createMockSession({
       status: 'working',
