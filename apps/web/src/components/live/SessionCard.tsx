@@ -366,7 +366,7 @@ export function SessionCard({
   const lastMsg = cleanedLastMessage
   const showLastMsg = lastMsg && lastMsg !== title && !lastMsg.startsWith(title)
 
-  const cardClassName = 'task-card group block rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/70 cursor-pointer transition-colors'
+  const cardClassName = 'task-card group relative block rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 pb-7 hover:bg-zinc-50 dark:hover:bg-zinc-800/70 cursor-pointer transition-colors'
   const preview = (value: string) => {
     const characters = Array.from(value)
     return characters.length > 50 ? `${characters.slice(0, 49).join('')}…` : value
@@ -398,12 +398,11 @@ export function SessionCard({
       {/* ── Goal (the session's pinned /goal directive) ── */}
       {session.goal && <GoalLine goal={session.goal} />}
 
-      <div className="session-card-meta flex items-center justify-between gap-2 mb-2 text-xs text-zinc-500 dark:text-zinc-400">
-        <span className="session-status inline-flex items-center gap-1.5"><span className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusDot}`} />{statusLabel}</span>
+      <span role="img" aria-label={statusLabel} title={statusLabel} className={`session-status absolute bottom-3 right-3 h-1.5 w-1.5 rounded-full ${statusDot}`} />
+      <div className="session-card-meta flex items-start justify-between gap-2 mb-1 text-xs text-zinc-500 dark:text-zinc-400">
+        <p title={title} className="session-title min-w-0 flex-1 text-sm font-medium text-zinc-900 dark:text-zinc-100">{preview(title)}</p>
         <time dateTime={new Date(activityAt * 1000).toISOString()} title={`Last prompt: ${new Date(activityAt * 1000).toLocaleString()}`} className="shrink-0 tabular-nums">{ago}</time>
       </div>
-
-      <p title={title} className="session-title min-w-0 text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-1">{preview(title)}</p>
 
       {/* ── Last user message ── */}
       {showLastMsg && (

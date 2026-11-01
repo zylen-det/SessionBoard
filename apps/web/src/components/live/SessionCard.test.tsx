@@ -103,13 +103,14 @@ describe('live SessionCard', () => {
 })
 
 describe('SessionCard status display', () => {
-  it('uses the concise running status in the mixed grid', () => {
+  it('shows status as a dot without visible text', () => {
     const session = createMockSession({
       status: 'working',
       agentState: { state: 'tool_use', group: 'autonomous', label: 'Working', context: null },
     })
     const { container } = renderCard(session)
-    expect(container.querySelector('.session-status')).toHaveTextContent('running')
+    expect(container.querySelector('.session-status')).toBeEmptyDOMElement()
+    expect(screen.getByRole('img', { name: 'running' })).toHaveAttribute('title', 'running')
     expect(screen.queryByText('Working')).not.toBeInTheDocument()
   })
 

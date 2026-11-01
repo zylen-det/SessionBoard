@@ -93,7 +93,15 @@ try {
   await page.getByRole('tab', { name: 'Tasks', exact: true }).click()
   await expect(page.getByText('Verify persisted progress', { exact: true }).last()).toBeVisible()
   await page.getByRole('button', { name: 'Close detail panel' }).click()
-  await expect(page.locator('.session-status')).toHaveText('idle')
+  await expect(page.locator('.session-status')).toBeEmpty()
+  await expect(page.locator('.session-status')).toHaveAttribute('aria-label', 'idle')
+  const dotPosition = await page.locator('.session-status').evaluate((dot) => {
+    const card = dot.closest('.task-card').getBoundingClientRect()
+    const bounds = dot.getBoundingClientRect()
+    return { right: card.right - bounds.right, bottom: card.bottom - bounds.bottom }
+  })
+  assert(dotPosition.right >= 8 && dotPosition.right <= 16, 'Status dot must sit at the right edge of the card')
+  assert(dotPosition.bottom >= 8 && dotPosition.bottom <= 16, 'Status dot must sit at the bottom edge of the card')
   await expect(page.locator('.task-card time')).toHaveCount(1)
   await expect(page.getByText('Turn completed', { exact: true })).toHaveCount(0)
   await page.goto(base + '/sessions', { waitUntil: 'domcontentloaded' })
