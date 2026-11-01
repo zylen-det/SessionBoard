@@ -21,7 +21,7 @@ try {
   const main = page.locator('main')
   await expect(page.locator('[data-session-id]')).toHaveCount(12)
   await expect(page.locator('.runtime-glyph')).toHaveCount(5)
-  for (const glyph of ['.runtime-term-c', '.runtime-dot', '.runtime-line']) {
+  for (const glyph of ['.runtime-term-c', '.runtime-dot', '.runtime-tp']) {
     await expect(page.locator('.runtime-glyph').filter({ has: page.locator(glyph) }).first()).toBeVisible()
   }
   const runningActivity = page.locator('[data-session-id="demo-session-004"] .session-runtime-activity')

@@ -1,5 +1,4 @@
 .runtime-glyph {
-  --k: 1;
   --sz: 16px;
   --sw: 3.6;
   display: block;
@@ -23,55 +22,109 @@
 :where(.runtime-glyph svg *) {
   transform-box: fill-box;
   transform-origin: center;
-  animation-duration: calc(var(--d) * var(--k));
-  animation-iteration-count: infinite;
+  animation-duration: var(--enter);
   animation-timing-function: ease-in-out;
   animation-fill-mode: both;
-  animation-delay: calc(var(--i, 0) * var(--st) * var(--k));
+  animation-delay: calc(var(--i, 0) * var(--st));
 }
 
-.runtime-dash { stroke-dasharray: 1 2; stroke-dashoffset: 1.05; }
-.runtime-term-c { animation-name: runtime-term-c; }
-.runtime-term-u { animation-name: runtime-term-u; transform-origin: 0 50%; }
-.runtime-dot { fill: currentColor; stroke: none; animation-name: runtime-dot; }
-.runtime-line { animation-name: runtime-line; }
+.runtime-dash { stroke-dasharray: 1 2; stroke-dashoffset: 0; }
+.runtime-term-u { transform-origin: 0 50%; }
+.runtime-dot { fill: currentColor; stroke: none; }
 
-@keyframes runtime-term-c {
+.runtime-glyph-enter .runtime-term-c { animation-name: runtime-term-enter; }
+.runtime-glyph-enter .runtime-term-u { animation-name: runtime-cursor-enter; }
+.runtime-glyph-enter .runtime-dot { animation-name: runtime-dot-enter; }
+
+.runtime-glyph-loop .runtime-term-u {
+  animation-name: runtime-cursor-loop;
+  animation-duration: 768ms;
+  animation-iteration-count: infinite;
+}
+.runtime-glyph-loop .runtime-dot {
+  animation-name: runtime-dot-loop;
+  animation-duration: 1012ms;
+  animation-iteration-count: infinite;
+}
+
+.runtime-glyph-exit svg * { animation-duration: var(--exit); }
+.runtime-glyph-exit .runtime-term-c { animation-name: runtime-line-exit; }
+.runtime-glyph-exit .runtime-term-u { animation-name: runtime-cursor-exit; }
+.runtime-glyph-exit .runtime-dot { animation-name: runtime-dot-exit; }
+
+/* Five slots, one new line every 500ms. Drawing occupies that entire slot,
+   so each next line starts as soon as the previous line finishes. Keep the
+   same animation across enter -> loop to preserve the continuous stream. */
+.runtime-tp {
+  animation-name: runtime-type-push;
+  animation-duration: 2500ms;
+  animation-delay: calc(var(--i) * 500ms);
+  animation-iteration-count: infinite;
+}
+.runtime-glyph-exit .runtime-tp {
+  animation-name: runtime-type-push-exit;
+  animation-duration: var(--exit);
+  animation-delay: 0s;
+  animation-iteration-count: 1;
+}
+
+@keyframes runtime-type-push {
+  0% { opacity: 0; stroke-dashoffset: 1.05; transform: translateY(0); }
+  1% { opacity: 1; stroke-dashoffset: 1.05; transform: translateY(0); }
+  20% { stroke-dashoffset: 0; transform: translateY(0); }
+  28%, 40% { stroke-dashoffset: 0; transform: translateY(-10px); }
+  48%, 60% { transform: translateY(-20px); }
+  68%, 80% { transform: translateY(-30px); }
+  88% { opacity: 1; transform: translateY(-40px); }
+  92%, 100% { opacity: 0; stroke-dashoffset: 0; transform: translateY(-40px); }
+}
+
+@keyframes runtime-type-push-exit {
+  from { opacity: var(--exit-opacity, 1); stroke-dashoffset: var(--exit-dash, 0); transform: var(--exit-transform, none); }
+  to { opacity: 0; stroke-dashoffset: var(--exit-dash, 0); transform: translateY(-48px); }
+}
+
+@keyframes runtime-term-enter {
   0% { stroke-dashoffset: 1.05; opacity: 0; }
-  4% { opacity: 1; }
-  28% { stroke-dashoffset: 0; }
-  72% { stroke-dashoffset: 0; opacity: 1; }
-  92% { stroke-dashoffset: -1.05; opacity: 1; }
-  100% { stroke-dashoffset: -1.05; opacity: 0; }
+  13% { opacity: 1; }
+  93%, 100% { stroke-dashoffset: 0; opacity: 1; }
 }
 
-@keyframes runtime-term-u {
-  0%, 22% { opacity: 0; transform: scaleX(0); }
-  30% { opacity: 1; transform: scaleX(1); }
-  38% { opacity: 0; }
+@keyframes runtime-cursor-enter {
+  0%, 73% { opacity: 0; transform: scaleX(0); }
+  100% { opacity: 1; transform: scaleX(1); }
+}
+
+@keyframes runtime-cursor-loop {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75% { opacity: 0; }
+}
+
+@keyframes runtime-dot-enter {
+  0% { opacity: 0; transform: scale(0); }
   46% { opacity: 1; }
-  54% { opacity: 0; }
-  62%, 78% { opacity: 1; transform: scaleX(1); }
-  92%, 100% { opacity: 0; transform: scaleX(0); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
-@keyframes runtime-dot {
-  0% { opacity: 0; transform: translateY(0) scale(0); }
-  12% { opacity: 1; }
-  26% { transform: translateY(0) scale(1); }
-  40% { transform: translateY(-7px) scale(1); }
-  54% { transform: translateY(0) scale(1); }
-  72% { opacity: 1; transform: translateY(0) scale(1); }
-  84%, 100% { opacity: 0; transform: translateY(0) scale(0); }
+@keyframes runtime-dot-loop {
+  0%, 61%, 100% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-7px) scale(1); }
 }
 
-@keyframes runtime-line {
-  0% { stroke-dashoffset: 1.05; opacity: 0; }
-  4% { opacity: 1; }
-  30% { stroke-dashoffset: 0; }
-  68% { stroke-dashoffset: 0; opacity: 1; }
-  86% { stroke-dashoffset: -1.05; opacity: 1; }
+@keyframes runtime-line-exit {
+  0% { stroke-dashoffset: var(--exit-dash, 0); opacity: var(--exit-opacity, 1); }
+  71% { stroke-dashoffset: -1.05; opacity: var(--exit-opacity, 1); }
   100% { stroke-dashoffset: -1.05; opacity: 0; }
+}
+
+@keyframes runtime-cursor-exit {
+  from { opacity: var(--exit-opacity, 1); transform: var(--exit-transform, scaleX(1)); }
+  to { opacity: 0; transform: scaleX(0); }
+}
+
+@keyframes runtime-dot-exit {
+  from { opacity: var(--exit-opacity, 1); transform: var(--exit-transform, scale(1)); }
+  to { opacity: 0; transform: translateY(0) scale(0); }
 }
 
 .runtime-text-window { position: relative; display: block; overflow: hidden; }
@@ -91,5 +144,6 @@
 @media (prefers-reduced-motion: reduce) {
   .runtime-glyph svg *, .runtime-text-in, .runtime-text-out { animation: none !important; }
   .runtime-glyph .runtime-dash { stroke-dashoffset: 0; opacity: 1; }
+  .runtime-glyph .runtime-tp { transform: translateY(calc((var(--i) - 4) * 10px)); }
   .runtime-text-out { display: none; }
 }
