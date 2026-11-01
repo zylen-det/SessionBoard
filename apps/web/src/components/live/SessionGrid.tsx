@@ -41,7 +41,7 @@ export function SessionGrid({ sessions, selectedId, onSelect, currentTime, group
         <div className="space-y-6">
           {[...projects].map(([key, project]) => (
             <section key={key} data-project-group={key}>
-              <h2 title={project.path} className="mb-3 border-b border-zinc-200 dark:border-zinc-800 pb-2 text-sm font-medium text-zinc-800 dark:text-zinc-200 break-words">{project.name}</h2>
+              <h2 title={project.path} className="mb-3 border-b border-zinc-200 dark:border-zinc-800 pb-2 text-base font-medium text-zinc-800 dark:text-zinc-200 break-words">{project.path ? project.path.replace(/^\/(?:home|Users)\/[^/]+(?=\/|$)/, '~') : project.name}</h2>
               <div className="space-y-4">
                 {[...project.branches].map(([branch, rows]) => (
                   <section key={branch ?? '__no_branch__'} data-branch-group={branch ?? ''}>

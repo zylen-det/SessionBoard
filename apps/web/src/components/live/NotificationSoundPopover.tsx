@@ -33,13 +33,13 @@ export function NotificationSoundPopover({
       <Popover.Trigger asChild>
         <button
           type="button"
-          className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-150 cursor-pointer"
+          className="p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors duration-150 cursor-pointer"
           aria-label="Notification sound settings"
         >
           {isEnabled ? (
-            <BellRing className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+            <BellRing className="w-5 h-5 text-zinc-600 dark:text-zinc-300" />
           ) : (
-            <BellOff className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+            <BellOff className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
           )}
         </button>
       </Popover.Trigger>
@@ -48,30 +48,31 @@ export function NotificationSoundPopover({
         <Popover.Content
           align="end"
           sideOffset={8}
-          className="w-64 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg p-4 z-50"
+          className="w-64 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl p-4 z-50"
         >
           {/* Header */}
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-3">
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
             Notification Sound
           </h3>
 
           {/* Toggle row */}
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm text-gray-600 dark:text-gray-300">Sound</span>
+            <span className="text-sm text-zinc-600 dark:text-zinc-300">Sound</span>
             <button
               type="button"
               role="switch"
               aria-checked={isEnabled}
+              aria-label="Sound"
               onClick={() => onSettingsChange({ enabled: !isEnabled })}
               className={cn(
                 'relative w-9 h-5 rounded-full transition-colors duration-150 cursor-pointer',
-                isEnabled ? 'bg-amber-500' : 'bg-gray-300 dark:bg-gray-600',
+                isEnabled ? 'bg-zinc-700 dark:bg-zinc-300' : 'bg-zinc-300 dark:bg-zinc-700',
               )}
             >
               <span
                 className={cn(
-                  'absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-150',
-                  isEnabled && 'translate-x-4',
+                  'absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white dark:bg-zinc-200 transition-transform duration-150',
+                  isEnabled && 'translate-x-4 dark:bg-zinc-900',
                 )}
               />
             </button>
@@ -79,9 +80,10 @@ export function NotificationSoundPopover({
 
           {/* Volume row */}
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-sm text-gray-600 dark:text-gray-300 shrink-0">Volume</span>
+            <span className="text-sm text-zinc-600 dark:text-zinc-300 shrink-0">Volume</span>
             <input
               type="range"
+              aria-label="Volume"
               min={0}
               max={100}
               step={1}
@@ -91,12 +93,12 @@ export function NotificationSoundPopover({
               }
               disabled={!isEnabled}
               className={cn(
-                'w-full h-1 rounded-full appearance-none accent-amber-500 cursor-pointer',
-                '[&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-amber-500',
+                'w-full h-1 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-zinc-600 dark:accent-zinc-300 cursor-pointer',
+                '[&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-zinc-600 dark:[&::-webkit-slider-thumb]:bg-zinc-300',
                 !isEnabled && 'opacity-40 cursor-not-allowed',
               )}
             />
-            <span className="text-xs font-mono tabular-nums text-gray-500 dark:text-gray-400 w-8 text-right">
+            <span className="text-xs font-mono tabular-nums text-zinc-500 dark:text-zinc-400 w-8 text-right">
               {Math.round(settings.volume * 100)}%
             </span>
           </div>
@@ -113,8 +115,8 @@ export function NotificationSoundPopover({
                   'flex-1 py-1.5 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer',
                   'border',
                   settings.sound === preset.value
-                    ? 'ring-2 ring-amber-500 bg-amber-50 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300'
-                    : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700',
+                    ? 'ring-1 ring-zinc-400 dark:ring-zinc-500 bg-zinc-100 dark:bg-zinc-800 border-zinc-400 dark:border-zinc-500 text-zinc-900 dark:text-zinc-100'
+                    : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800',
                   !isEnabled && 'opacity-40 cursor-not-allowed',
                 )}
               >
@@ -127,14 +129,14 @@ export function NotificationSoundPopover({
           <button
             type="button"
             onClick={onPreview}
-            className="flex items-center justify-center gap-2 w-full py-1.5 rounded-md text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors duration-150 cursor-pointer"
+            className="flex items-center justify-center gap-2 w-full py-1.5 rounded-md text-sm bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 transition-colors duration-150 cursor-pointer"
           >
             <Play className="w-3.5 h-3.5" />
             Preview
           </button>
 
           {showLockedHint && (
-            <p className="mt-2 text-[11px] leading-snug text-amber-600 dark:text-amber-400">
+            <p className="mt-2 text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">
               Click anywhere on the page once to enable notification sound (your browser blocks
               audio until you interact).
             </p>
