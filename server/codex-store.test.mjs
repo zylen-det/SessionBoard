@@ -4,7 +4,7 @@ import http from 'node:http'
 import os from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
-import { CodexStore, parseRollout, recordsFrom, toLive } from './codex-store.mjs'
+import { CodexStore, parseRollout, recordsFrom, toFileHistory, toLive } from './codex-store.mjs'
 import { createCodexServer } from './index.mjs'
 
 const at = '2026-10-31T10:00:00Z'
@@ -117,6 +117,27 @@ test('legacy async question tools require explicit acceptance, independently of 
   assert.equal(parseRollout([...records, output(false), completed], { now }).phase, 'completed')
   assert.equal(parseRollout([...records, output(true), completed], { now }).phase, 'waiting')
   assert.equal(parseRollout([...records, output(true), completed, started, row('response_item', { ...user.payload, id: 'reply' })], { now }).phase, 'working')
+})
+
+test('preserves exact successful file diffs, counts repeated edits once, and marks missing counts unavailable', () => {
+  const diff = '--- a/src/app.ts\n+++ b/src/app.ts\n@@ -1,2 +1,3 @@\n--- old header\n+new line\n++ literal plus\n unchanged\n'
+  const change = (id, changes, status = 'completed') => row('event_msg', { type: 'item_completed', item: { type: 'FileChange', id, status, changes } })
+  const first = change('edit-1', { 'src/app.ts': { type: 'update', unified_diff: diff } })
+  const parsed = parseRollout([
+    meta(), first, first,
+    change('edit-2', [{ path: 'src/app.ts', diff: '@@ -1 +1 @@\n-new line\n+final line\n' }]),
+    change('edit-3', { 'unknown.txt': { type: 'update' } }),
+    change('edit-4', { 'failed.txt': { unified_diff: diff } }, 'failed'),
+  ], { now })
+  const history = toFileHistory(parsed)
+  assert.deepEqual(history.summary, { totalFiles: 2, totalAdded: 3, totalRemoved: 2 })
+  assert.equal(history.files[0].recordedDiffs[0], diff)
+  assert.equal(history.files[0].recordedDiffs.length, 2)
+  assert.equal(history.files[0].statsAvailable, true)
+  assert.equal(history.files[1].statsAvailable, false)
+  assert.deepEqual(history.files[1].recordedDiffs, [])
+  assert.deepEqual([...parsed.filesEdited], ['src/app.ts', 'unknown.txt'])
+  assert.deepEqual(toFileHistory(parseRollout([meta()], { now })).summary, { totalFiles: 0, totalAdded: 0, totalRemoved: 0 })
 })
 
 test('context usage follows the latest request instead of cumulative session tokens', () => {

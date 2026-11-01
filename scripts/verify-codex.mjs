@@ -43,6 +43,10 @@ try {
     row('event_msg', { type: 'task_started', turn_id: 'fixture-turn' }),
     row('event_msg', { type: 'item_completed', item: { type: 'UserMessage', id: 'fixture-user', content: [{ type: 'text', text: 'Codex integration fixture' }] } }),
     message('fixture-commentary', 'Checking integration fixture.'),
+    row('event_msg', { type: 'item_completed', item: { type: 'FileChange', id: 'fixture-edit', status: 'completed', changes: {
+      '/work/codex-fixture/src/example.ts': { type: 'update', unified_diff: '@@ -1 +1 @@\n-const value = 1\n+const value = 2\n' },
+      '/work/codex-fixture/unavailable.txt': { type: 'update' },
+    } } }),
   ].map(line).join(''))
   await mkdir(path.join(home, 'app-server-control'), { recursive: true })
   daemon = createServer()
@@ -106,6 +110,18 @@ try {
   notify('item/agentMessage/delta', { itemId: 'output-a', delta: 'Some public answer' })
   await expect(page.locator('.session-runtime-activity')).toHaveText('outputting')
   await page.locator('[data-session-id]').click()
+  await page.getByRole('tab', { name: 'Overview', exact: true }).click()
+  const fileChanges = page.getByRole('region', { name: 'File changes', exact: true })
+  const fileRow = fileChanges.getByRole('button', { name: /example.ts/ })
+  await expect(fileRow).toHaveAttribute('aria-expanded', 'false')
+  await expect(fileRow).toContainText('+1')
+  await expect(fileRow).toContainText('−1')
+  await expect(fileChanges.getByRole('button', { name: /unavailable.txt/ })).toHaveCount(0)
+  await fileRow.click()
+  await expect(fileChanges.getByRole('region', { name: 'Changes to /work/codex-fixture/src/example.ts' })).toContainText('-const value = 1')
+  await expect(fileChanges).toContainText('+const value = 2')
+  await fileRow.click()
+  await expect(fileChanges.getByRole('region')).toHaveCount(0)
   await page.getByRole('tab', { name: 'Chat', exact: true }).click()
   await expect(page.getByText('Checking integration fixture.', { exact: true }).last()).toBeVisible()
   await appendFile(log, [

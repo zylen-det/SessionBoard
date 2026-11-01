@@ -1,15 +1,20 @@
-import type { FileHistoryResponse } from '../../types/generated/FileHistoryResponse'
+import type { SessionFileHistory } from '../../hooks/use-file-history'
+import { RecordedFileChanges } from './RecordedFileChanges'
 import { FileChangeHeader } from './FileChangeHeader'
 import { OpenInIdeButton } from './OpenInIdeButton'
 
 interface ChangesTabProps {
-  fileHistory: FileHistoryResponse
+  fileHistory: SessionFileHistory
   sessionId: string
   projectPath: string
 }
 
 export function ChangesTab({ fileHistory, sessionId, projectPath }: ChangesTabProps) {
   const { summary, files } = fileHistory
+
+  if (files.some((file) => file.recordedDiffs !== undefined)) {
+    return <div className="p-4 overflow-y-auto h-full"><RecordedFileChanges files={files} /></div>
+  }
 
   return (
     <div className="p-4 overflow-y-auto h-full space-y-2">

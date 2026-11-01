@@ -20,7 +20,9 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
-
+    proxy: process.env.AGENTHUD_API_TARGET
+      ? { '/api': { target: process.env.AGENTHUD_API_TARGET, changeOrigin: true } }
+      : undefined,
   },
   build: {
     outDir: 'dist',

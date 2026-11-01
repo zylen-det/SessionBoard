@@ -4,7 +4,7 @@ import { createServer } from 'node:http'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { CodexStore, toInfo, toLive } from './codex-store.mjs'
+import { CodexStore, toFileHistory, toInfo, toLive } from './codex-store.mjs'
 import { CodexRuntime } from './codex-runtime.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -157,7 +157,7 @@ export function createCodexServer({ home = process.env.CODEX_HOME || path.join(o
           return json(res, { sessionId: id, blocks: item.blocks.slice(offset, offset + limit), total: item.blocks.length, offset, hasMore: offset + limit < item.blocks.length })
         }
         if (suffix === 'rich') return json(res, { ...runtime.decorate(toLive(item)), firstUserMessage: item.firstUser })
-        if (suffix === 'file-history') return json(res, { files: [], totalEdits: 0, sessionId: id })
+        if (suffix === 'file-history') return json(res, toFileHistory(item))
         if (suffix === 'plans') {
           const content = item.planText || item.plan.map((step) => `- [${step.status === 'completed' ? 'x' : ' '}] ${step.title}`).join('\n')
           return json(res, content ? [{ slug: item.rawId, variant: null, filename: 'Recorded Codex plan', content, sizeBytes: Buffer.byteLength(content), modifiedAt: item.lastAt }] : [])

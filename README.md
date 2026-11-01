@@ -37,7 +37,7 @@ bun start
 | Finished turns | 僅代表收到 `task_complete`，不代表整個任務完成或 CLI 已退出 |
 | Waiting for input | 依明確請求事件、daemon 等待旗標或已接受的非同步提問顯示；非同步提問跨回合結束保留 Need you，收到下一則使用者訊息後清除；不能從未結束的工具呼叫推斷批准等待 |
 | 搜尋 | 標題、專案與已索引的訊息片段；不是整份歷史的全文搜尋 |
-| 檔案變更 | 支援已記錄的 native FileChange 檔名；未重建完整版本 diff／Git commit 關聯 |
+| 檔案變更 | Session 側欄顯示成功的 native FileChange 檔名與增刪行數，可展開紀錄中的 exact unified diff；缺少 diff 時不可展開，行數顯示 —。行數累計每次修改，不代表 Git 淨差異 |
 | 問題與回覆 | 看板卡片直接顯示完整問題、選項與文字欄位；Session 對話頁也可回答。連線到既有 daemon Session 時可送出答案，等待 Codex 確認後清除；亦可繼續在原本的 Codex 客戶端回答 |
 | Command／File change 批准 | 已接入即時請求，可允許一次、允許本 Session、拒絕或取消；顯示命令、網路目標或已接收的檔案修改內容 |
 | 額外網路／檔案權限 | 可授予原請求的權限（本回合或本 Session），或拒絕；不接受前端自行擴充的權限 |
@@ -68,6 +68,8 @@ bun run test:codex:browser
 bun install
 bun run dev
 ```
+
+開發時接入真實 Codex 資料，可先用 `PORT=4176 bun start` 啟動 API，再執行 `AGENTHUD_API_TARGET=http://127.0.0.1:4176 bun run dev`。
 
 打开 http://localhost:5173 。不需要安装 Claude CLI、登录或配置 API key。
 
