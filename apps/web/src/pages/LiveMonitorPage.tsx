@@ -218,7 +218,6 @@ export function LiveMonitorPage() {
           if (!session) return null
           return (
             <SessionDetailPanel
-              key={selectedId}
               session={session}
               onClose={() => setSelectedId(null)}
             />
