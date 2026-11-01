@@ -53,7 +53,14 @@ export function createCodexServer({ home = process.env.CODEX_HOME || path.join(o
     res.setHeader('X-Frame-Options', 'DENY')
     const port = server.address()?.port
     const allowedHosts = new Set([`127.0.0.1:${port}`, `localhost:${port}`, `[::1]:${port}`])
-    if (!allowedHosts.has(req.headers.host) || (req.headers.origin && !['http://127.0.0.1:' + port, 'http://localhost:' + port, 'http://[::1]:' + port].includes(req.headers.origin)) || req.headers['sec-fetch-site'] === 'cross-site') return json(res, { error: 'Local same-origin access only' }, 403)
+    const address = server.address()?.address
+    const hostFor = (ip) => `${ip.includes(':') ? `[${ip}]` : ip}:${port}`
+    if (address === '0.0.0.0' || address === '::') {
+      for (const network of Object.values(os.networkInterfaces())) {
+        for (const iface of network ?? []) allowedHosts.add(hostFor(iface.address))
+      }
+    } else if (address) allowedHosts.add(hostFor(address))
+    if (!allowedHosts.has(req.headers.host) || (req.headers.origin && ![...allowedHosts].some(host => req.headers.origin === `http://${host}`)) || req.headers['sec-fetch-site'] === 'cross-site') return json(res, { error: 'Local same-origin access only' }, 403)
     try {
       const url = new URL(req.url, `http://${req.headers.host}`), pathname = decodeURIComponent(url.pathname)
       if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, { error: 'Codex observer is read-only. Continue or approve work in your existing Codex client.' }, 405)
@@ -158,9 +165,21 @@ export function createCodexServer({ home = process.env.CODEX_HOME || path.join(o
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   const port = Number(process.env.PORT ?? 4174)
+  let host = process.env.HOST ?? '127.0.0.1'
+  const args = process.argv.slice(2)
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]
+    if (arg === '--host') {
+      host = args[i + 1] && !args[i + 1].startsWith('-') ? args[++i] : '0.0.0.0'
+    } else if (arg.startsWith('--host=') && arg.length > '--host='.length) {
+      host = arg.slice('--host='.length)
+    } else {
+      throw new Error(`Unknown argument: ${arg}. Usage: npm run start -- [--host [address]]`)
+    }
+  }
   await readFile(path.join(root, 'apps/web/dist/index.html')).catch(() => { throw new Error('Build the frontend first: bun run build') })
   const { server, ready, store } = createCodexServer()
   await ready
-  server.listen(port, '127.0.0.1', () => console.log(`Codex observer: http://127.0.0.1:${server.address().port} (${store.all().length} primary sessions; read-only)`))
+  server.listen(port, host, () => console.log(`Codex observer: http://${host.includes(':') ? `[${host}]` : host}:${server.address().port} (${store.all().length} primary sessions; read-only)`))
   for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => server.stop().then(() => process.exit(0)))
 }

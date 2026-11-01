@@ -25,6 +25,7 @@ import { useFullInteraction } from '../../hooks/use-full-interaction'
 import { buildSessionUrl } from '../../lib/url-utils'
 import { cleanPreviewText } from '../../utils/get-session-title'
 import { TaskProgressList } from './TaskProgressList'
+import { RuntimeActivity } from './RuntimeActivity'
 import { getEffectiveBranch } from './effective-branch'
 import { sortSubAgentsForCard } from './sort-sub-agents'
 import type { AgentState } from './types'
@@ -413,7 +414,7 @@ export function SessionCard({
       )}
 
       {running ? (
-        <p className="session-runtime-activity mt-2 mb-3 line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400 break-words" title={runtimeActivity && runtimeActivity.kind !== 'unknown' ? runtimeText : 'Waiting for a live activity event from the existing Codex session'}>{runtimeText}</p>
+        <RuntimeActivity kind={runtimeActivity?.kind ?? 'unknown'} text={runtimeText} title={runtimeActivity && runtimeActivity.kind !== 'unknown' ? runtimeText : 'Waiting for a live activity event from the existing Codex session'} />
       ) : activity && <p className="mt-2 mb-3 text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2" title={activity}>{activity}</p>}
 
       {/* ── Pending interaction (permission, question, plan, elicitation) ── */}

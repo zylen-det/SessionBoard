@@ -16,12 +16,14 @@ bun start
 
 在儲存庫根目錄執行以上指令，開啟 http://127.0.0.1:4174 。需要其他埠時使用 `PORT=4175 bun start`；目前本機預覽使用 4175。`bun run start:codex` 保留為相同的啟動入口。
 
+局域網存取可使用 `npm run start -- --host`（監聽 `0.0.0.0`），再由其他裝置開啟 `http://這台電腦的局域網IP:4174`。也可用 `npm run start -- --host 192.168.0.160` 或 `--host=192.168.0.160` 僅監聽指定介面。不帶參數時預設為 `127.0.0.1`；仍支援 `HOST` 環境變數，`--host` 優先於環境變數。
+
 - 自動發現 `$CODEX_HOME/sessions`，預設為 `~/.codex/sessions`；也讀取 `archived_sessions` 與 `session_index.jsonl`（存在時）。不修改 Codex 設定、Session 或批准權限，不啟動新回合。存在共享 daemon 時會加入其已載入的 Session 訂閱活動，不傳入設定覆寫。
 - 同一個既有前端由本機 Node HTTP/SSE 服務提供資料，每兩秒檢查紀錄變化；對話、任務與計畫每三秒更新。無須新增 API key。
 - 支援舊版 `response_item`／`event_msg` 與本機 Codex 0.166.0 的 `item_completed` 格式；讀取使用者／助手訊息、工具結果、`update_plan` 計畫、已記錄的檔案修改與子 Agent 關係。系統指令及原始 reasoning 不顯示；即時狀態只使用 reasoning 的公開摘要。
 - Board 顯示最近七天，最多 100 個未結束紀錄與 20 個已結束回合；完整主 Session 列表保留在 Sessions。子 Agent 不重複列為獨立主任務。
 - 歷史總覽只讀首 128 KiB 與尾 256 KiB，避免反覆讀完整個歷史目錄。最近 24 小時修改的紀錄與所選詳情會完整解析，單檔上限 64 MiB。詳情快取最多四份。
-- Live API 只允許本機同源讀取，拒絕所有修改方法。紀錄讀取失敗不會切回模擬資料。
+- Live API 只允許監聽介面位址的同源讀取，拒絕所有修改方法。紀錄讀取失敗不會切回模擬資料。
 
 ### 能力與界線
 
