@@ -16,7 +16,8 @@
     "start:codex": "node server/index.mjs",
     "test:codex": "node --test server/*.test.mjs",
     "test:codex:browser": "node scripts/verify-codex.mjs",
-    "start": "node server/index.mjs"
+    "start": "node server/index.mjs",
+    "start:bun": "bun server/index.mjs"
   },
   "dependencies": {
     "ws": "^8.22.0"

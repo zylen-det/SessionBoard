@@ -8,6 +8,15 @@
 
 ## Codex 接入
 
+預設 `bun start`／`npm start` 仍使用 Node.js 執行後端。若已安裝 Bun，也可選擇以 Bun 執行同一個後端：
+
+```sh
+bun run start:bun
+# 或 npm run start:bun
+```
+
+兩種執行方式使用相同的設定與參數，例如 `npm run start:bun -- --host`。Bun 執行方式目前為可選實驗功能；基本 HTTP 服務已驗證，即時 daemon 活動與回覆仍待完整驗證。測試維持使用 Node.js。
+
 ```sh
 bun install
 bun run build
