@@ -6,6 +6,8 @@ Keep an eye on multiple sessions in one place: see what’s running, what needs 
 
 **Currently supports Codex only.** Claude Code and other agent backends are not supported.
 
+![AgentHUD dashboard showing demo Codex sessions](docs/images/dashboard.png)
+
 ## Features
 
 - **Live session board** — follow tool activity, output, and session status.
