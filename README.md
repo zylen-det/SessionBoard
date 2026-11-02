@@ -6,7 +6,11 @@ Keep an eye on multiple sessions in one place: see what’s running, what needs 
 
 **Currently supports Codex only.** Claude Code and other agent backends are not supported.
 
-![AgentHUD dashboard showing demo Codex sessions](docs/images/dashboard.png)
+![AgentHUD dashboard showing multiple sessions, live tool activity, and sessions waiting for approval or input](docs/images/dashboard.png)
+
+Monitor work across projects and spot sessions that need your input. Screenshot and video use simulated sessions.
+
+[Watch the demo — multiple sessions and the Need you filter](docs/images/agenthud-demo.mp4)
 
 ## Features
 
@@ -138,6 +142,10 @@ Production assets are written to `apps/web/dist/`. Static hosting serves the dem
 | `artifacts/` | Local verification screenshots, excluded from Git |
 
 Dependencies are pinned with `bun.lock`. Build output, test reports, and environment files are excluded from Git. Upstream Sentry initialization has been removed.
+
+### Recording the demo
+
+With the demo dev server running, use `node scripts/record-demo.mjs` to regenerate the README screenshot and silent demo video. Requires Playwright Chromium and FFmpeg. Set `DEMO_URL` or `CHROMIUM_PATH` when needed. The recording uses smooth cursor movement, click indicators, and camera zooms; it never connects to real sessions.
 
 ## Acknowledgments
 
