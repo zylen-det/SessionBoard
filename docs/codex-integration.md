@@ -1,10 +1,10 @@
-# AgentHUD
+# Session Board
 
 同時檢視多個 Codex Session 的本機任務看板，提供最後 prompt 時間排序、Need you 快捷篩選、Project + Branch 分組，以及 tool／reasoning／outputting 即時活動狀態。桌面使用卡片網格，手機維持雙欄。
 
 專案直接位於儲存庫根目錄，使用 Bun workspace 管理 React 前端與共用套件，由 Node HTTP／SSE 服務讀取既有 Codex Session 並訂閱本機共享 daemon。
 
-前端源自 [tombelieber/claude-view](https://github.com/tombelieber/claude-view/tree/d3e4ad89f3847d702f33381735e97dc397fb196d)（上游版本 0.46.2，commit `d3e4ad8`），保留上游 MIT 授權與共用套件名稱。AgentHUD 版本獨立管理。
+前端源自 [tombelieber/claude-view](https://github.com/tombelieber/claude-view/tree/d3e4ad89f3847d702f33381735e97dc397fb196d)（上游版本 0.46.2，commit `d3e4ad8`），保留上游 MIT 授權與共用套件名稱。Session Board 版本獨立管理。
 
 ## Codex 接入
 

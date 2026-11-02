@@ -3,7 +3,7 @@ import { closedSessions, conversation, defaults, history, liveSessions, now, pro
 const meta = { dataScope: { sessions: 'primary_sessions_only', workload: 'primary_plus_subagent_work' }, sessionBreakdown: { primarySessions: 84, sidechainSessions: 16, otherSessions: 0, totalObservedSessions: 100 } }
 const heatmap = Array.from({ length: 180 }, (_, i) => ({ date: new Date((now - (179 - i) * 86400) * 1000).toISOString().slice(0, 10), count: (i * 7 + i % 3) % 12 }))
 let settings = JSON.parse(localStorage.getItem('demo-settings') || '{"llmModel":"claude-sonnet-4-6","llmTimeoutSecs":120}')
-const memory = { name: 'Project conventions', description: 'Architecture and coding conventions for agentHUD', memoryType: 'project', body: '# Project conventions\n\nUse React and TypeScript. Prefer small components, accessible controls, and the existing design tokens.\n\nRun the build before submitting changes.', filename: 'conventions.md', relativePath: 'agentHUD/conventions.md', scope: 'project', projectDir: 'agentHUD', sizeBytes: 256, modifiedAt: now - 3600 }
+const memory = { name: 'Project conventions', description: 'Architecture and coding conventions for SessionBoard', memoryType: 'project', body: '# Project conventions\n\nUse React and TypeScript. Prefer small components, accessible controls, and the existing design tokens.\n\nRun the build before submitting changes.', filename: 'conventions.md', relativePath: 'SessionBoard/conventions.md', scope: 'project', projectDir: 'SessionBoard', sizeBytes: 256, modifiedAt: now - 3600 }
 
 function filtered(url: URL) {
   const p = url.searchParams
@@ -50,7 +50,7 @@ export function mockApi(url: URL, method: string, body?: string): Response {
   if (path.endsWith('/branches')) return json({ branches: [...new Set(history.map(s => s.gitBranch))].map(name => ({ name, branch: name, count: 21, sessionCount: 21 })) })
   if (path === '/api/sessions/activity/rich') {
     const rows = filtered(url)
-    return json({ histogram: heatmap.map(d => ({ ...d, totalSeconds: d.count * 600 })), bucket: 'day', projects: projects.map(p => ({ projectPath: p.path, displayName: p.displayName, sessionCount: rows.filter(s => s.project === p.name).length, totalSeconds: 21600, totalCostUsd: 38.4 })), summary: { totalSeconds: rows.reduce((a, s) => a + s.durationSeconds, 0), sessionCount: rows.length, totalToolCalls: rows.length * 47, totalAgentSpawns: 16, totalMcpCalls: 24, uniqueSkills: 6, longestSessionId: history[0].id, longestSessionSeconds: 4800, longestSessionProject: 'agentHUD', longestSessionTitle: history[0].preview }, total: rows.length })
+    return json({ histogram: heatmap.map(d => ({ ...d, totalSeconds: d.count * 600 })), bucket: 'day', projects: projects.map(p => ({ projectPath: p.path, displayName: p.displayName, sessionCount: rows.filter(s => s.project === p.name).length, totalSeconds: 21600, totalCostUsd: 38.4 })), summary: { totalSeconds: rows.reduce((a, s) => a + s.durationSeconds, 0), sessionCount: rows.length, totalToolCalls: rows.length * 47, totalAgentSpawns: 16, totalMcpCalls: 24, uniqueSkills: 6, longestSessionId: history[0].id, longestSessionSeconds: 4800, longestSessionProject: 'SessionBoard', longestSessionTitle: history[0].preview }, total: rows.length })
   }
   if (path === '/api/sessions' || /^\/api\/projects\/[^/]+\/sessions$/.test(path)) {
     if (path.startsWith('/api/projects/')) url.searchParams.set('project', path.split('/')[3])
@@ -107,7 +107,7 @@ export function mockApi(url: URL, method: string, body?: string): Response {
   if (path === '/api/system') return json({ ...defaults.SystemResponse, health: { ...defaults.SystemResponse.health, sessionsCount: 84, commitsCount: 38, projectsCount: 4, lastSyncAt: now }, storage: { jsonlBytes: 48000000, indexBytes: 8000000, dbBytes: 4200000, cacheBytes: 2000000, totalBytes: 62200000 }, claudeCli: { path: '/demo/bin/claude', version: 'demo', authenticated: false, subscriptionType: null } })
   if (path === '/api/stats/storage') return json({ ...defaults.StorageStats, sessionCount: 84, projectCount: 4, commitCount: 38, jsonlBytes: 48000000, sqliteBytes: 4200000, indexBytes: 8000000, lastIndexAt: now, oldestSessionDate: now - 180 * 86400 })
   if (path === '/api/claude-code-settings') return json({ env: [], permissions: { allow: ['Read', 'Grep', 'Glob'], deny: [], ask: ['Bash', 'Write'] }, userHooks: [], systemHooks: [], systemHookCount: 0, plugins: [], customMarketplaces: [], voiceEnabled: false, skipDangerousPrompt: false, statusLine: null, defaultMode: 'default' })
-  if (path === '/api/memory') return json({ totalCount: 1, global: [], projects: [{ projectDir: 'agentHUD', displayName: 'agentHUD', count: 1, memories: [memory] }] })
+  if (path === '/api/memory') return json({ totalCount: 1, global: [], projects: [{ projectDir: 'SessionBoard', displayName: 'SessionBoard', count: 1, memories: [memory] }] })
   if (path === '/api/memory/file') return json(memory)
   if (path === '/api/plugins') return json(defaults.PluginsResponse)
   if (path === '/api/plugins/marketplaces') return json([])

@@ -34,7 +34,7 @@ export function Header({ soundSettings, onSoundSettingsChange, onSoundPreview, a
       )}
       <Link to="/" className="flex items-center gap-2.5 shrink-0 text-zinc-900 dark:text-zinc-100 hover:opacity-80 transition-opacity">
         <Home className="w-4 h-4 text-zinc-500" />
-        <span className="text-sm font-semibold">Agent HUD</span>
+        <span className="text-sm font-semibold">Session Board</span>
       </Link>
       <div className="hidden sm:flex items-center gap-3 text-sm min-w-0">
         <ChevronRight className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-600" />

@@ -75,7 +75,7 @@ export class CodexRuntime {
     socket.on('open', async () => {
       try {
         await this.request('initialize', {
-          clientInfo: { name: 'agenthud-observer', version: '0.1.0' },
+          clientInfo: { name: 'session-board-observer', version: '0.1.0' },
           capabilities: {
             experimentalApi: true,
             optOutNotificationMethods: ['rawResponseItem/completed', 'rawResponse/completed', 'item/reasoning/textDelta', 'item/commandExecution/outputDelta', 'item/fileChange/outputDelta'],

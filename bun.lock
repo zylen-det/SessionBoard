@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "agenthud",
+      "name": "session-board",
       "dependencies": {
         "ws": "^8.22.0",
       },

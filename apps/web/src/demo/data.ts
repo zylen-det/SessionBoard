@@ -12,7 +12,7 @@ const titles = [
   'Refactor notification service', 'Ship responsive session cards',
   'Add dark mode to settings', 'Investigate cache invalidation',
 ]
-const names = ['agentHUD', 'commerce-api', 'design-system', 'claude-view']
+const names = ['SessionBoard', 'commerce-api', 'design-system', 'claude-view']
 
 export function demoRuntimeActivity(step: number): NonNullable<LiveSession['runtimeActivity']> {
   const phases = [

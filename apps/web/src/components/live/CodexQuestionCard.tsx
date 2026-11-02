@@ -77,7 +77,7 @@ function QuestionForm({ sessionId, question }: { sessionId: string; question: Pe
           <button type="submit" disabled={!complete || sending} className="rounded-md bg-zinc-800 px-3 py-2 text-xs font-medium text-white hover:bg-zinc-700 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 disabled:opacity-50">
             {sending ? 'Sending…' : 'Send answer'}
           </button>
-        ) : <p className="text-xs text-zinc-600 dark:text-zinc-400">Answer in the original Codex client. AgentHUD can send replies when this session is connected.</p>}
+        ) : <p className="text-xs text-zinc-600 dark:text-zinc-400">Answer in the original Codex client. Session Board can send replies when this session is connected.</p>}
         <p className="text-xs text-zinc-500 dark:text-zinc-400">Your answer is sent as a message to this Codex session.</p>
       </form>
     </section>

@@ -1,16 +1,14 @@
-# AgentHUD
+# Session Board
 
-A local dashboard for your Codex sessions.
-
-Keep an eye on multiple sessions in one place: see what’s running, what needs your input, and the latest activity without switching between terminals.
+A local dashboard for monitoring multiple Codex sessions, viewing activity, and responding to questions and approval requests.
 
 **Currently supports Codex only.** Claude Code and other agent backends are not supported.
 
-![AgentHUD dashboard showing multiple sessions, live tool activity, and sessions waiting for approval or input](docs/images/dashboard.png)
+![Session Board dashboard showing multiple sessions, live tool activity, and sessions waiting for approval or input](docs/images/dashboard.png)
 
-Monitor work across projects and spot sessions that need your input. Screenshot and video use simulated sessions.
+Screenshot and video use simulated sessions.
 
-[Watch the demo — multiple sessions and the Need you filter](docs/images/agenthud-demo.mp4)
+[Watch the demo — sessions, questions, conversation, search, and grouping](docs/images/session-board-demo.mp4)
 
 ## Features
 
@@ -36,7 +34,7 @@ bun start
 
 Open **http://127.0.0.1:4174**.
 
-AgentHUD discovers sessions in `$CODEX_HOME/sessions`, defaulting to `~/.codex/sessions`. It also reads archived sessions and the session index when available. No additional API key is required.
+Session Board discovers sessions in `$CODEX_HOME/sessions`, defaulting to `~/.codex/sessions`. It also reads archived sessions and the session index when available. No additional API key is required.
 
 To use a different port:
 
@@ -74,7 +72,7 @@ npm run start:bun -- --host
 
 ## How it works
 
-AgentHUD reads local Codex session records and serves the dashboard through a local HTTP/SSE server. When available, it connects to Codex’s existing shared daemon for live activity and interactions.
+Session Board reads local Codex session records and serves the dashboard through a local HTTP/SSE server. When available, it connects to Codex’s existing shared daemon for live activity and interactions.
 
 Background observation does not change Codex configuration or start new turns. Only answers and decisions you explicitly submit are sent back to the corresponding session. Question answers may start a new turn when the session is idle; live approval and tool-request replies answer the original request.
 
@@ -87,7 +85,7 @@ Session history remains available without a daemon connection. Live replies requ
 - A finished turn does not necessarily mean the overall task is complete or the Codex client has exited.
 - Search covers titles, projects, and indexed message excerpts, rather than full-history text.
 - File diffs are shown only when recorded. Added/deleted line counts accumulate across recorded edits and do not represent a Git net diff.
-- Approvals, blocking questions, permission requests, and supported MCP forms require the actual live request to reach AgentHUD. Unsupported forms and other agent controls remain in the original client.
+- Approvals, blocking questions, permission requests, and supported MCP forms require the actual live request to reach Session Board. Unsupported forms and other agent controls remain in the original client.
 - AI summaries and “what changed while you were away” reports are not included.
 
 See [Codex integration notes](docs/codex-integration.md) for protocol details, data limits, and interaction behavior.
@@ -145,11 +143,11 @@ Dependencies are pinned with `bun.lock`. Build output, test reports, and environ
 
 ### Recording the demo
 
-With the demo dev server running, use `node scripts/record-demo.mjs` to regenerate the README screenshot and silent demo video. Requires Playwright Chromium and FFmpeg. Set `DEMO_URL` or `CHROMIUM_PATH` when needed. The recording uses smooth cursor movement, click indicators, and camera zooms; it never connects to real sessions.
+With the demo dev server running, use `node scripts/record-demo.mjs` to regenerate the README screenshot and silent demo video. Requires Playwright Chromium and FFmpeg. Set `DEMO_URL` or `CHROMIUM_PATH` when needed. The recording covers the session board, Need you, question cards, session overview, conversation, tasks, search, and project/branch grouping. Each view pauses for two seconds, with smooth cursor movement and camera zooms. It has no subtitles or audio and never connects to real sessions.
 
 ## Acknowledgments
 
-AgentHUD started from the frontend of [claude-view](https://github.com/tombelieber/claude-view) by Tom Tang.
+Session Board started from the frontend of [claude-view](https://github.com/tombelieber/claude-view) by Tom Tang.
 
 This project narrows the feature set, redesigns the dashboard around monitoring multiple sessions, and adds a Codex backend. The original Claude Code backend is not included.
 

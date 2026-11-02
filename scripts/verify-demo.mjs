@@ -12,6 +12,8 @@ const base = process.env.DEMO_URL || 'http://localhost:5173'
 fs.mkdirSync('artifacts', { recursive: true })
 const { expect } = require('@playwright/test')
 const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, colorScheme: 'dark' })
+// Start the grid checks ungrouped, regardless of the product's default grouping.
+await context.addInitScript(() => localStorage.setItem('claude-view:kanban-group-by', 'none'))
 const page = await context.newPage()
 const errors = []
 page.on('pageerror', e => errors.push(e.message))
@@ -55,8 +57,8 @@ try {
   await expect(page.locator('[data-session-id]')).toHaveCount(0)
   await search.fill('')
   await expect(page.locator('[data-session-id]')).toHaveCount(12)
-  await filters.getByRole('checkbox', { name: 'agentHUD', exact: true }).click()
-  await expect(filters.getByRole('checkbox', { name: 'agentHUD', exact: true })).toBeChecked()
+  await filters.getByRole('checkbox', { name: 'SessionBoard', exact: true }).click()
+  await expect(filters.getByRole('checkbox', { name: 'SessionBoard', exact: true })).toBeChecked()
   await expect.poll(async () => page.locator('[data-session-id]').count()).toBeLessThan(12)
   assert((await page.locator('[data-session-id]').count()) > 0)
   await filters.getByRole('button', { name: 'Clear filters' }).click()
@@ -83,6 +85,9 @@ try {
   await expect(main.locator('.task-card time')).toHaveCount(12)
   assert(await main.locator('.task-card time').evaluateAll(nodes => nodes.every(n => /ago$/.test(n.textContent))))
 
+  // Wait for the popover to return focus before testing the keyboard shortcut.
+  await expect(filters).not.toBeVisible()
+  await expect(main.getByRole('button', { name: 'Filters', exact: true })).toBeFocused()
   await page.keyboard.press('/')
   await expect(page.getByRole('textbox', { name: 'Search sessions', exact: true })).toBeFocused()
   await page.getByRole('combobox', { name: 'Group', exact: true }).selectOption('project-branch')
@@ -101,13 +106,13 @@ try {
   await page.keyboard.press('Control+b')
   await expect.poll(async () => page.locator('aside').evaluate(el => Math.round(el.getBoundingClientRect().width))).toBeGreaterThan(56)
 
-  await page.goto(base + '/?status=autonomous&project=agentHUD&branch=feat%2Fagent-dashboard&q=Build', { waitUntil: 'networkidle' })
+  await page.goto(base + '/?status=autonomous&project=SessionBoard&branch=feat%2Fagent-dashboard&q=Build', { waitUntil: 'networkidle' })
   await expect(page.locator('[data-session-id]')).toHaveCount(0)
   await main.getByRole('button', { name: 'Need you', exact: true }).click()
   await expect(page.locator('[data-session-id]')).toHaveCount(1)
   const scoped = new URL(page.url()).searchParams
   assert.equal(scoped.get('status'), 'autonomous')
-  assert.equal(scoped.get('project'), 'agentHUD')
+  assert.equal(scoped.get('project'), 'SessionBoard')
   assert.equal(scoped.get('branch'), 'feat/agent-dashboard')
   assert.equal(scoped.get('q'), 'Build')
   await main.getByRole('button', { name: 'Need you', exact: true }).click()
@@ -115,7 +120,7 @@ try {
   await page.goto(base, { waitUntil: 'networkidle' })
 
   // The retained details remain available; retired tabs cannot be restored via deep links.
-  await page.locator('[data-session-id]').first().click()
+  await page.locator('[data-session-id] .session-title').first().click()
   await expect(page.getByRole('button', { name: 'Close detail panel' })).toBeVisible()
   await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toBeVisible()
   await expect(page.getByRole('tab', { name: 'Cost', exact: true })).toHaveCount(0)
@@ -181,7 +186,7 @@ try {
   assert(await page.locator('.session-grid').evaluateAll(nodes => nodes.every(el => getComputedStyle(el).gridTemplateColumns.split(' ').length === 2)))
   await page.getByRole('button', { name: 'Close filters', exact: true }).click()
   await page.screenshot({ path: 'artifacts/dashboard-grouped-mobile-dark.png' })
-  await page.locator('[data-session-id]').first().click()
+  await page.locator('[data-session-id] .session-title').first().click()
   await expect(page.getByRole('button', { name: 'Close detail panel' })).toBeVisible()
   await expect.poll(async () => page.getByRole('button', { name: 'Close detail panel' }).evaluate(el => el.getBoundingClientRect().right - window.innerWidth)).toBeLessThanOrEqual(0)
   console.log('PASS compact and mobile layouts')

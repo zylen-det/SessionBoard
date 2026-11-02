@@ -68,7 +68,7 @@ export function createCodexServer({ home = process.env.CODEX_HOME || path.join(o
       if (req.method !== 'GET' && req.method !== 'HEAD' && !answerRoute && !interactRoute) return json(res, { error: 'Only explicit replies to pending Codex requests can be submitted. Other operations are read-only.' }, 405)
       if (pathname === '/api/runtime') return json(res, { mode: 'codex', readOnly: true, questionReplies: true, requestReplies: true, source: 'local-rollouts', statusSource: runtime.connected ? 'app-server-events' : 'recorded-events', searchScope: 'indexed-excerpts' })
       await ready
-      if (pathname === '/api/config') return json(res, { auth: false, sharing: false, version: 'Agent HUD · Codex observer', telemetry: 'disabled', posthogKey: null, anonymousId: null, features: { systemMonitor: false } })
+      if (pathname === '/api/config') return json(res, { auth: false, sharing: false, version: 'Session Board · Codex observer', telemetry: 'disabled', posthogKey: null, anonymousId: null, features: { systemMonitor: false } })
       if (pathname === '/api/health') return json(res, { status: 'ok', provider: 'codex', sessions: store.all().length, unreadableFiles: store.errors?.length ?? 0 })
       if (pathname === '/api/projects') return json(res, store.projects())
       if (pathname === '/api/live/sessions') return json(res, snapshot())
