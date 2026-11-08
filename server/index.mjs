@@ -8,8 +8,63 @@ import { CodexStore, toFileHistory, toInfo, toLive } from './codex-store.mjs'
 import { CodexRuntime } from './codex-runtime.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+export const DEFAULT_PORT = 4174
+export const MAX_PORT = 65535
 const json = (res, value, status = 200) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(value)) }
 const pageNumber = (value, fallback, max) => Math.min(max, Math.max(0, Number.parseInt(value ?? '', 10) || fallback))
+
+export function parsePort(value, source = 'PORT') {
+  const text = String(value).trim()
+  const port = Number(text)
+  if (!/^\d+$/.test(text) || !Number.isSafeInteger(port) || port > MAX_PORT) throw new Error(`${source} must be an integer between 0 and ${MAX_PORT}.`)
+  return port
+}
+
+export function parseServerArgs(args, env = process.env) {
+  let port = parsePort(env.PORT ?? DEFAULT_PORT)
+  let host = env.HOST ?? '127.0.0.1'
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]
+    if (arg === '--host') {
+      host = args[i + 1] && !args[i + 1].startsWith('-') ? args[++i] : '0.0.0.0'
+    } else if (arg.startsWith('--host=') && arg.length > '--host='.length) {
+      host = arg.slice('--host='.length)
+    } else if (arg === '--port') {
+      if (!args[i + 1] || args[i + 1].startsWith('-')) throw new Error('--port requires a value between 0 and 65535.')
+      port = parsePort(args[++i], '--port')
+    } else if (arg.startsWith('--port=') && arg.length > '--port='.length) {
+      port = parsePort(arg.slice('--port='.length), '--port')
+    } else {
+      throw new Error(`Unknown argument: ${arg}. Usage: npm run start -- [--host [address]] [--port <port>]`)
+    }
+  }
+  return { port, host }
+}
+
+export function listenWithFallback(server, port, host) {
+  return new Promise((resolve, reject) => {
+    let candidate = port
+    const attempt = () => {
+      const onError = (error) => {
+        server.off('listening', onListening)
+        if (error.code === 'EADDRINUSE' && candidate > 0 && candidate < MAX_PORT) {
+          candidate += 1
+          attempt()
+        } else {
+          reject(error)
+        }
+      }
+      const onListening = () => {
+        server.off('error', onError)
+        resolve(server.address().port)
+      }
+      server.once('error', onError)
+      server.once('listening', onListening)
+      server.listen(candidate, host)
+    }
+    attempt()
+  })
+}
 
 function filtered(store, url) {
   const p = url.searchParams, q = (p.get('q') ?? '').toLowerCase()
@@ -188,22 +243,12 @@ export function createCodexServer({ home = process.env.CODEX_HOME || path.join(o
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
-  const port = Number(process.env.PORT ?? 4174)
-  let host = process.env.HOST ?? '127.0.0.1'
-  const args = process.argv.slice(2)
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i]
-    if (arg === '--host') {
-      host = args[i + 1] && !args[i + 1].startsWith('-') ? args[++i] : '0.0.0.0'
-    } else if (arg.startsWith('--host=') && arg.length > '--host='.length) {
-      host = arg.slice('--host='.length)
-    } else {
-      throw new Error(`Unknown argument: ${arg}. Usage: npm run start -- [--host [address]]`)
-    }
-  }
+  const { port, host } = parseServerArgs(process.argv.slice(2))
   await readFile(path.join(root, 'apps/web/dist/index.html')).catch(() => { throw new Error('Build the frontend first: bun run build') })
   const { server, ready, store } = createCodexServer()
   await ready
-  server.listen(port, host, () => console.log(`Codex observer: http://${host.includes(':') ? `[${host}]` : host}:${server.address().port} (${store.all().length} primary sessions; read-only)`))
+  const actualPort = await listenWithFallback(server, port, host)
+  if (port !== 0 && actualPort !== port) console.log(`Port ${port} is in use; using ${actualPort} instead.`)
+  console.log(`Codex observer: http://${host.includes(':') ? `[${host}]` : host}:${actualPort} (${store.all().length} primary sessions; read-only)`)
   for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => server.stop().then(() => process.exit(0)))
 }

@@ -36,11 +36,15 @@ Open **http://127.0.0.1:4174**.
 
 Session Board discovers sessions in `$CODEX_HOME/sessions`, defaulting to `~/.codex/sessions`. It also reads archived sessions and the session index when available. No additional API key is required.
 
-To use a different port:
+To use a different port, pass `--port` or set `PORT`:
 
 ```sh
+npm start -- --port 4175
+# Or:
 PORT=4175 bun start
 ```
+
+The command-line option takes precedence over `PORT`. If the requested port is already in use, the server automatically tries the next available port and prints the URL it selected.
 
 ### Optional Bun runtime
 
